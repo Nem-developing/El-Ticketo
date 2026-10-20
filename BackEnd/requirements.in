@@ -1,0 +1,8 @@
+# Dépendances directes de l'API. Après modification, régénérer requirements.txt :
+#   uv pip compile requirements.in -o requirements.txt --python-version 3.12
+fastapi>=0.120,<1
+uvicorn[standard]>=0.30,<1
+sqlalchemy>=2.0,<3
+alembic>=1.13,<2
+pymysql[rsa]>=1.1,<2
+tzdata

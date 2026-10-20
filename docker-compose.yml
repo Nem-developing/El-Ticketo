@@ -1,116 +1,108 @@
-version: '3.1'
+# El Ticketo — application, API et base de données derrière Traefik.
+#
+#   cp .env.example .env    # puis choisissez les mots de passe
+#   docker compose up -d --build
+#
+# Le service est exposé en HTTP simple : en production, placez-le derrière un proxy TLS
+# (ou ajoutez un point d'entrée HTTPS à Traefik).
+#
+# phpMyAdmin (outil d'administration de la base) ne démarre qu'à la demande :
+#   docker compose --profile tools up -d
 
 services:
   traefik:
-    image: traefik:v2.10
-    restart: always
+    image: traefik:v3.7
+    restart: unless-stopped
     command:
-      - "--api.insecure=true"
       - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
     ports:
-      - "8080:80"
-      - "8081:8080"
+      - "${HTTP_PORT:-8080}:80"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - elticketo-network
 
   elticketo-api:
-    image: elticketo/api:alpha_2.0
-    restart: always
+    build:
+      context: .
+      dockerfile: BackEnd/Dockerfile
+    restart: unless-stopped
     depends_on:
-      - fix-database
+      elticketo-db:
+        condition: service_healthy
     networks:
       - elticketo-network
     environment:
-      DB_USER: exampleuser
-      DB_PASSWORD: examplepass
-      DB_NAME: fix
-      DB_HOSTNAME: fix-database
-    ports:
-      - "8000:8080"
+      DB_HOSTNAME: elticketo-db
+      DB_NAME: elticketo
+      DB_USER: elticketo
+      DB_PASSWORD: ${DB_PASSWORD:?définissez DB_PASSWORD dans .env (voir .env.example)}
+      # Compte administrateur créé au premier démarrage (base vide).
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?définissez ADMIN_PASSWORD dans .env (voir .env.example)}
+      TOKEN_TTL_HOURS: ${TOKEN_TTL_HOURS:-168}
     labels:
-    - "traefik.enable=true"
-
-    ## Middleware de redirection : /static → /api/static
-    - "traefik.http.middlewares.static-redirect.redirectregex.regex=^/static/(.*)"
-    - "traefik.http.middlewares.static-redirect.redirectregex.replacement=/api/static/$$1"
-    - "traefik.http.middlewares.static-redirect.redirectregex.permanent=true"
-
-    ## Route de redirection static
-    - "traefik.http.routers.static-redirect.rule=PathPrefix(`/static`)"
-    - "traefik.http.routers.static-redirect.middlewares=static-redirect"
-    - "traefik.http.routers.static-redirect.entrypoints=web"
-    - "traefik.http.routers.static-redirect.priority=100"
-
-    ## Middleware pour désactiver validator Swagger UI
-    - "traefik.http.middlewares.add-validator-url.redirectregex.regex=^/api/docs$"
-    - "traefik.http.middlewares.add-validator-url.redirectregex.replacement=/api/docs?validatorUrl="
-    - "traefik.http.middlewares.add-validator-url.redirectregex.permanent=false"
-
-    ## Router pour appliquer middleware sur /api/docs
-    - "traefik.http.routers.docs-validator-disable.rule=Path(`/api/docs`)"
-    - "traefik.http.routers.docs-validator-disable.entrypoints=web"
-    - "traefik.http.routers.docs-validator-disable.middlewares=add-validator-url"
-    - "traefik.http.routers.docs-validator-disable.service=elticketo-api"
-
-    ## Route principale pour /api
-    - "traefik.http.routers.elticketo-api.rule=PathPrefix(`/api`)"
-    - "traefik.http.routers.elticketo-api.entrypoints=web"
-    - "traefik.http.services.elticketo-api.loadbalancer.server.port=8080"
-
-
+      - "traefik.enable=true"
+      - "traefik.http.routers.elticketo-api.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.elticketo-api.entrypoints=web"
+      - "traefik.http.services.elticketo-api.loadbalancer.server.port=8080"
 
   elticketo-app:
-    image: elticketo/app:alpha_2.0
-    restart: always
+    build:
+      context: .
+      dockerfile: FrontEnd/Dockerfile
+    restart: unless-stopped
     depends_on:
-      - fix-database
       - elticketo-api
     networks:
       - elticketo-network
-    environment:
-      API_URL: "http://elticketo-api:8080"
-      APP_URL: "http://localhost:8000"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.elticketo-app.rule=PathPrefix(`/`)"
-      - "traefik.http.services.elticketo-app.loadbalancer.server.port=5173"
+      - "traefik.http.routers.elticketo-app.entrypoints=web"
+      - "traefik.http.services.elticketo-app.loadbalancer.server.port=80"
 
-  fix-database:
-    image: mariadb:latest
-    restart: always
+  elticketo-db:
+    image: mariadb:11.8
+    restart: unless-stopped
     environment:
-      MARIADB_DATABASE: fix
-      MARIADB_USER: exampleuser
-      MARIADB_PASSWORD: examplepass
-      MARIADB_RANDOM_ROOT_PASSWORD: '1'
+      MARIADB_DATABASE: elticketo
+      MARIADB_USER: elticketo
+      MARIADB_PASSWORD: ${DB_PASSWORD:?définissez DB_PASSWORD dans .env (voir .env.example)}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
       - elticketo-network
     volumes:
       - db:/var/lib/mysql
 
   phpmyadmin:
-    image: phpmyadmin
-    restart: always
+    image: phpmyadmin:5
+    profiles: ["tools"]
+    restart: unless-stopped
+    depends_on:
+      - elticketo-db
     environment:
-      PMA_HOST: fix-database
+      PMA_HOST: elticketo-db
       PMA_PORT: 3306
       PMA_ABSOLUTE_URI: /phpmyadmin/
     networks:
       - elticketo-network
     labels:
-    - "traefik.enable=true"
-    - "traefik.http.routers.phpmyadmin.rule=PathPrefix(`/phpmyadmin`)"
-
-    - "traefik.http.middlewares.phpmyadmin-stripprefix.stripPrefix.prefixes=/phpmyadmin"
-    - "traefik.http.routers.phpmyadmin.middlewares=phpmyadmin-stripprefix"
-
-    - "traefik.http.services.phpmyadmin.loadbalancer.server.port=80"
+      - "traefik.enable=true"
+      - "traefik.http.routers.phpmyadmin.rule=PathPrefix(`/phpmyadmin`)"
+      - "traefik.http.routers.phpmyadmin.entrypoints=web"
+      - "traefik.http.middlewares.phpmyadmin-stripprefix.stripprefix.prefixes=/phpmyadmin"
+      - "traefik.http.routers.phpmyadmin.middlewares=phpmyadmin-stripprefix"
+      - "traefik.http.services.phpmyadmin.loadbalancer.server.port=80"
 
 volumes:
-  fix:
   db:
 
 networks:

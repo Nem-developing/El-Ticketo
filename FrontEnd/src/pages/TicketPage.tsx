@@ -1,194 +1,333 @@
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate, useParams } from "react-router";
+
+import { ApiError, errorMessage } from "../api/client";
+import { useDeleteTicket, useTicket, useUpdateTicket, useUsers } from "../api/queries";
+import type { Ticket, TicketPriority, TicketStatus, TicketUpdate } from "../api/types";
+import { useCurrentUser } from "../auth/context";
+import { CommentThread } from "../components/tickets/CommentThread";
+import { PriorityBadge, StatusBadge } from "../components/ui/Badges";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
+import { Field } from "../components/ui/Field";
+import { EmptyState, ErrorState, Loader } from "../components/ui/States";
+import { useToast } from "../context/toast";
+import { formatDateTime, formatRelative } from "../lib/format";
 import {
-  createComment,
-  fetchComments,
-  fetchTicketById,
-  updateComment,
-  deleteComment,
-} from "../services/apiService";
-import {
-  TicketCommentForm,
-  TicketCommentList,
-} from "../components/tickets/TicketComment";
+  MAX_LENGTH,
+  PRIORITIES,
+  PRIORITY_LABELS,
+  STATUSES,
+  STATUS_LABELS,
+  SUGGESTED_CATEGORIES,
+} from "../lib/labels";
 
-interface Ticket {
-  id: number;
-  titre: string;
-  categorie: string;
-  date: string;
-  description?: string;
-  [key: string]: any;
-}
+function ContentEditor({
+  ticket,
+  onSave,
+  onCancel,
+  pending,
+}: {
+  ticket: Ticket;
+  onSave: (changes: TicketUpdate) => void;
+  onCancel: () => void;
+  pending: boolean;
+}) {
+  const [title, setTitle] = useState(ticket.title);
+  const [description, setDescription] = useState(ticket.description);
+  const [category, setCategory] = useState(ticket.category);
 
-interface Comment {
-  id: number;
-  auteur: string;
-  contenu: string;
-  date: string;
-}
-
-const TicketPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const [ticket, setTicket] = useState<Ticket | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!id) {
-      console.warn("Aucun ID de ticket fourni dans l'URL.");
-      return;
-    }
-
-    loadTicketAndComments();
-  }, [id]);
-
-  const loadTicketAndComments = async () => {
-    try {
-      setLoading(true);
-      const ticketId = parseInt(id!, 10);
-      console.log("Chargement du ticket ID :", ticketId);
-
-      const t = await fetchTicketById(ticketId);
-      console.log("Ticket récupéré :", t);
-      setTicket(t.Ticket);
-
-      await reloadComments(ticketId);
-    } catch (err: any) {
-      console.error("Erreur lors du chargement :", err);
-      setError(err.message || "Erreur inconnue");
-    } finally {
-      setLoading(false);
-    }
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    // N'envoie que ce qui a changé, pour ne pas écraser une modification faite entre-temps
+    // par un collègue sur un autre champ.
+    const changes: TicketUpdate = {};
+    if (title.trim() !== ticket.title) changes.title = title;
+    if (description.trim() !== ticket.description) changes.description = description;
+    if (category.trim() !== ticket.category) changes.category = category;
+    if (Object.keys(changes).length === 0) onCancel();
+    else onSave(changes);
   };
-
-  const reloadComments = async (ticketId: number) => {
-    const c = await fetchComments(ticketId);
-    console.log("Commentaires récupérés :", c);
-
-    const commentairesFormates = Array.isArray(c.Commentaires)
-      ? c.Commentaires.map((com) => {
-          // Construit un objet Date valide à partir de la date et l'heure reçues
-          const [jour, mois, annee] = com.date.split("/");
-          const dateUTC = new Date(`${annee}-${mois}-${jour}T${com.heure}Z`); // "Z" = UTC
-          const dateLocale = new Date(
-            dateUTC.getTime() + new Date().getTimezoneOffset()
-          );
-          const dateStr = dateLocale.toLocaleString("fr-FR", {
-            dateStyle: "short",
-            timeStyle: "short",
-          });
-
-          return {
-            id: com.id,
-            auteur: `Utilisateur #${com.user_id}`,
-            contenu: com.commentaire,
-            date: dateStr,
-            timestamp: dateLocale.getTime(),
-          };
-        })
-      : [];
-
-    // Trie les commentaires
-    const commentairesTries = commentairesFormates.sort(
-      (a, b) => b.timestamp - a.timestamp
-    );
-
-    setComments(commentairesTries);
-  };
-
-  const handleNewComment = async (contenu: string) => {
-    if (!ticket) return;
-
-    try {
-      await createComment(ticket.id, {
-        message: contenu,
-      });
-      await reloadComments(ticket.id);
-    } catch (err) {
-      console.error("Erreur lors de l'ajout du commentaire :", err);
-    }
-  };
-
-  const handleEditComment = async (commentToEdit: Comment) => {
-    const nouveauContenu = prompt(
-      "Modifier le commentaire :",
-      commentToEdit.contenu
-    );
-    if (nouveauContenu !== null && nouveauContenu.trim() !== "") {
-      try {
-        await updateComment(ticket!.id, commentToEdit.id, {
-          message: nouveauContenu.trim(),
-          statut: 0,
-        });
-        await reloadComments(ticket!.id);
-      } catch (err) {
-        console.error("Erreur lors de la modification :", err);
-      }
-    }
-  };
-
-  const handleDeleteComment = async (commentId: number) => {
-    if (window.confirm("Supprimer ce commentaire ?")) {
-      try {
-        await deleteComment(ticket!.id, commentId);
-        await reloadComments(ticket!.id);
-      } catch (err) {
-        console.error("Erreur lors de la suppression :", err);
-      }
-    }
-  };
-
-  if (loading)
-    return (
-      <div className="TicketPage">
-        <p>Chargement...</p>
-      </div>
-    );
-  if (error)
-    return (
-      <div className="TicketPage">
-        <p>Erreur : {error}</p>
-      </div>
-    );
-  if (!ticket)
-    return (
-      <div className="TicketPage">
-        <p>Ticket introuvable</p>
-      </div>
-    );
 
   return (
-    <div className="TicketPage">
-      <div className="ticket-details">
-        <h1>
-          Ticket #{ticket.id} : {ticket.titre}
-        </h1>
-        <p>
-          <strong>Catégorie :</strong> {ticket.categorie}
-        </p>
-        <p>
-          <strong>Date :</strong> {ticket.date}
-        </p>
-        {ticket.description && (
-          <p>
-            <strong>Description :</strong> {ticket.description}
-          </p>
-        )}
+    <form className="form" onSubmit={submit}>
+      <Field label="Titre" htmlFor="edit-title">
+        <input
+          id="edit-title"
+          className="input"
+          required
+          maxLength={MAX_LENGTH.title}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+        />
+      </Field>
+      <Field label="Catégorie" htmlFor="edit-category">
+        <input
+          id="edit-category"
+          className="input"
+          list="category-suggestions"
+          required
+          maxLength={MAX_LENGTH.category}
+          value={category}
+          onChange={(event) => setCategory(event.target.value)}
+        />
+        <datalist id="category-suggestions">
+          {SUGGESTED_CATEGORIES.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
+          ))}
+        </datalist>
+      </Field>
+      <Field label="Description" htmlFor="edit-description" optional>
+        <textarea
+          id="edit-description"
+          className="input"
+          rows={6}
+          maxLength={MAX_LENGTH.text}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+        />
+      </Field>
+      <div className="form-actions">
+        <button type="button" className="button" onClick={onCancel}>
+          Annuler
+        </button>
+        <button type="submit" className="button button--primary" disabled={pending}>
+          Enregistrer
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function TicketDetails({ ticket }: { ticket: Ticket }) {
+  const user = useCurrentUser();
+  const users = useUsers();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const update = useUpdateTicket(ticket.id);
+  const remove = useDeleteTicket(ticket.id);
+  const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const save = (changes: TicketUpdate, onDone?: () => void) =>
+    update.mutate(changes, {
+      onSuccess: () => onDone?.(),
+      onError: (error) => toast.error(errorMessage(error)),
+    });
+
+  const deleteTicket = () =>
+    remove.mutate(undefined, {
+      onSuccess: () => {
+        toast.success(`Ticket #${ticket.id} supprimé.`);
+        navigate("/tickets", { replace: true });
+      },
+      onError: (error) => toast.error(errorMessage(error)),
+    });
+
+  const isClosed = ticket.status === "closed";
+  const isMine = ticket.assignee?.id === user.id;
+  const assignableUsers = (users.data ?? []).filter(
+    (candidate) => candidate.is_active || candidate.id === ticket.assignee?.id,
+  );
+
+  return (
+    <div className="page">
+      <Link to="/tickets" className="back-link">
+        <ArrowLeft size={16} aria-hidden="true" />
+        Tickets
+      </Link>
+
+      <header className="ticket-header">
+        <div>
+          <p className="ticket-header__id">#{ticket.id}</p>
+          <h1 className="ticket-header__title">{ticket.title}</h1>
+          <div className="ticket-header__badges">
+            <StatusBadge status={ticket.status} />
+            <PriorityBadge priority={ticket.priority} />
+            <span className="tag">{ticket.category}</span>
+          </div>
+        </div>
+        <div className="ticket-header__actions">
+          {!isClosed && !(isMine && ticket.status === "in_progress") && (
+            <button
+              type="button"
+              className="button"
+              disabled={update.isPending}
+              onClick={() => save({ status: "in_progress", assignee_id: user.id })}
+            >
+              Prendre en charge
+            </button>
+          )}
+          {isClosed ? (
+            <button
+              type="button"
+              className="button"
+              disabled={update.isPending}
+              onClick={() => save({ status: ticket.assignee ? "in_progress" : "new" })}
+            >
+              Rouvrir
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="button button--primary"
+              disabled={update.isPending}
+              onClick={() => save({ status: "closed" })}
+            >
+              Fermer le ticket
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="ticket-layout">
+        <div className="ticket-layout__main">
+          <section className="card" aria-label="Description">
+            {editing ? (
+              <ContentEditor
+                ticket={ticket}
+                pending={update.isPending}
+                onCancel={() => setEditing(false)}
+                onSave={(changes) => save(changes, () => setEditing(false))}
+              />
+            ) : (
+              <>
+                <header className="card__header">
+                  <h2 className="card__title">Description</h2>
+                  <button type="button" className="link-button" onClick={() => setEditing(true)}>
+                    <Pencil size={14} aria-hidden="true" />
+                    Modifier
+                  </button>
+                </header>
+                {ticket.description ? (
+                  <p className="prose">{ticket.description}</p>
+                ) : (
+                  <p className="muted">Pas de description.</p>
+                )}
+              </>
+            )}
+          </section>
+
+          <CommentThread ticketId={ticket.id} />
+        </div>
+
+        <aside className="ticket-layout__side">
+          <section className="card form" aria-label="Suivi">
+            <Field label="Statut" htmlFor="status">
+              <select
+                id="status"
+                className="input"
+                value={ticket.status}
+                disabled={update.isPending}
+                onChange={(event) => save({ status: event.target.value as TicketStatus })}
+              >
+                {STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Priorité" htmlFor="priority">
+              <select
+                id="priority"
+                className="input"
+                value={ticket.priority}
+                disabled={update.isPending}
+                onChange={(event) => save({ priority: event.target.value as TicketPriority })}
+              >
+                {PRIORITIES.map((priority) => (
+                  <option key={priority} value={priority}>
+                    {PRIORITY_LABELS[priority]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Assigné à" htmlFor="assignee">
+              <select
+                id="assignee"
+                className="input"
+                value={ticket.assignee?.id ?? ""}
+                disabled={update.isPending || users.isPending}
+                onChange={(event) =>
+                  save({ assignee_id: event.target.value ? Number(event.target.value) : null })
+                }
+              >
+                <option value="">Personne</option>
+                {assignableUsers.map((candidate) => (
+                  <option key={candidate.id} value={candidate.id}>
+                    {candidate.username}
+                    {candidate.id === user.id ? " (moi)" : ""}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <dl className="meta">
+              <dt>Créé par</dt>
+              <dd>{ticket.created_by.username}</dd>
+              <dt>Créé le</dt>
+              <dd>{formatDateTime(ticket.created_at)}</dd>
+              <dt>Mis à jour</dt>
+              <dd title={formatDateTime(ticket.updated_at)}>{formatRelative(ticket.updated_at)}</dd>
+              {ticket.closed_at && (
+                <>
+                  <dt>Fermé le</dt>
+                  <dd>{formatDateTime(ticket.closed_at)}</dd>
+                </>
+              )}
+            </dl>
+          </section>
+
+          {user.is_admin && (
+            <button
+              type="button"
+              className="button button--danger-ghost button--block"
+              onClick={() => setConfirmDelete(true)}
+            >
+              Supprimer le ticket
+            </button>
+          )}
+        </aside>
       </div>
 
-      <div className="comments-section">
-        <h2>Commentaires</h2>
-        <TicketCommentForm onSubmit={handleNewComment} />
-        <TicketCommentList
-          comments={comments}
-          onEdit={handleEditComment}
-          onDelete={handleDeleteComment}
-        />
-      </div>
+      <ConfirmDialog
+        open={confirmDelete}
+        title={`Supprimer le ticket #${ticket.id} ?`}
+        message="Le ticket et ses commentaires seront définitivement supprimés."
+        confirmLabel="Supprimer"
+        pending={remove.isPending}
+        onConfirm={deleteTicket}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
-};
+}
 
-export default TicketPage;
+export function TicketPage() {
+  const ticketId = Number(useParams().ticketId);
+  const ticket = useTicket(ticketId);
+
+  const notFound =
+    !(Number.isInteger(ticketId) && ticketId > 0) ||
+    (ticket.error instanceof ApiError && [404, 422].includes(ticket.error.status));
+
+  if (notFound) {
+    return (
+      <EmptyState
+        title="Ticket introuvable"
+        hint="Il a peut-être été supprimé, ou le lien est erroné."
+        action={
+          <Link to="/tickets" className="button">
+            Retour aux tickets
+          </Link>
+        }
+      />
+    );
+  }
+  if (ticket.isPending) return <Loader />;
+  if (ticket.isLoadingError) return <ErrorState error={ticket.error} onRetry={ticket.refetch} />;
+  return <TicketDetails key={ticket.data.id} ticket={ticket.data} />;
+}

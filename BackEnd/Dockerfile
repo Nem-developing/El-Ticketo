@@ -1,14 +1,29 @@
-# FIX-API:3.1
-#
-# PRÉREQUITS
-FROM python:3.9
+# El Ticketo — API
+# Build depuis la racine du dépôt : docker build -f BackEnd/Dockerfile .
+FROM python:3.12-slim
 
-WORKDIR /usr/src/app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-COPY ./BackEnd/ ./
+WORKDIR /app
 
-RUN pip3 install -r /usr/src/app/requirements.txt
+COPY BackEnd/requirements.txt .
+RUN pip install -r requirements.txt
 
+COPY BackEnd/app ./app
+
+RUN useradd --system --uid 10001 --no-create-home elticketo
+USER elticketo
+
+# Seul le reverse proxy (Traefik, sur le réseau Docker privé) est autorisé à transmettre
+# l'adresse réelle du client via X-Forwarded-For : elle sert à limiter les tentatives de connexion.
+ENV FORWARDED_ALLOW_IPS="127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
 
 EXPOSE 8080
-CMD ["python3", "-u" ,"main.py"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health')"
+
+CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8080", \
+     "--proxy-headers"]

@@ -1,16 +1,64 @@
-import React from "react";
-import { BrowserRouter as Router } from "react-router-dom";
-import AppRoutes from "./routes/AppRoutes";
-import MainLayout from "./layout/MainLayout";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Route, Routes } from "react-router";
 
-const App = () => {
+import { ApiError } from "./api/client";
+import { AuthProvider } from "./auth/AuthProvider";
+import { RequireAdmin, RequireAuth, RequireProject } from "./auth/guards";
+import { AppLayout } from "./components/layout/AppLayout";
+import { ThemeProvider } from "./context/ThemeProvider";
+import { ToastProvider } from "./context/ToastProvider";
+import { AccountPage } from "./pages/AccountPage";
+import { ProjectsPage } from "./pages/admin/ProjectsPage";
+import { UsersPage } from "./pages/admin/UsersPage";
+import { DashboardPage } from "./pages/DashboardPage";
+import { LoginPage } from "./pages/LoginPage";
+import { NewTicketPage } from "./pages/NewTicketPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
+import { TicketPage } from "./pages/TicketPage";
+import { TicketsPage } from "./pages/TicketsPage";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 15_000,
+      // Inutile de réessayer une erreur client (404, 403…) : seules les pannes réseau/serveur le méritent.
+      retry: (failureCount, error) =>
+        failureCount < 2 &&
+        !(error instanceof ApiError && error.status >= 400 && error.status < 500),
+    },
+  },
+});
+
+export function App() {
   return (
-    <Router>
-      <MainLayout>
-        <AppRoutes />
-      </MainLayout>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route element={<RequireAuth />}>
+                  <Route element={<AppLayout />}>
+                    <Route element={<RequireProject />}>
+                      <Route index element={<DashboardPage />} />
+                      <Route path="tickets" element={<TicketsPage />} />
+                      <Route path="tickets/new" element={<NewTicketPage />} />
+                    </Route>
+                    <Route path="tickets/:ticketId" element={<TicketPage />} />
+                    <Route path="account" element={<AccountPage />} />
+                    <Route path="admin" element={<RequireAdmin />}>
+                      <Route path="users" element={<UsersPage />} />
+                      <Route path="projects" element={<ProjectsPage />} />
+                    </Route>
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Route>
+                </Route>
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
-};
-
-export default App;
+}

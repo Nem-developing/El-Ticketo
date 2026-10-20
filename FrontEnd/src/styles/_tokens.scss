@@ -1,0 +1,118 @@
+// Jetons de design : toute la palette passe par ces variables (thèmes clair et sombre).
+
+@mixin light-theme {
+  color-scheme: light;
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --border: #e3e7ec;
+  --border-strong: #cfd5dc;
+  --text: #14181f;
+  --text-2: #4b5563;
+  --text-muted: #6b7280;
+
+  --primary: #2a78d6;
+  --primary-hover: #256abf;
+  --primary-soft: #e8f1fc;
+  --primary-text: #1c5cab;
+  --focus-ring: rgba(42, 120, 214, 0.35);
+
+  --danger: #c93434;
+  --danger-hover: #b02c2c;
+  --danger-soft: #fdecec;
+
+  --sidebar-bg: #192f47;
+  --sidebar-text: #c9d4e0;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: rgba(255, 255, 255, 0.08);
+
+  // Statuts de ticket : fond doux + texte foncé (toujours accompagnés d'un libellé).
+  --status-new-bg: #e8f1fc;
+  --status-new-fg: #1c5cab;
+  --status-in_progress-bg: #ece9fb;
+  --status-in_progress-fg: #4a3aa7;
+  --status-waiting-bg: #fdf3d9;
+  --status-waiting-fg: #8a5a00;
+  --status-closed-bg: #e5f4e5;
+  --status-closed-fg: #006300;
+
+  --priority-low: #9aa3ad;
+  --priority-normal: #2a78d6;
+  --priority-high: #d03b3b;
+
+  // Graphiques (palette validée daltonisme / contraste, cf. skill dataviz).
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --chart-grid: #e8ebef;
+  --chart-axis: #c3c9d1;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 8px 24px rgba(16, 24, 40, 0.12);
+}
+
+@mixin dark-theme {
+  color-scheme: dark;
+  --bg: #0f1216;
+  --surface: #181b20;
+  --surface-2: #1f2329;
+  --border: #2c3138;
+  --border-strong: #3a4049;
+  --text: #f3f4f6;
+  --text-2: #c4c9d1;
+  --text-muted: #8b939e;
+
+  --primary: #3987e5;
+  --primary-hover: #5598e7;
+  --primary-soft: rgba(57, 135, 229, 0.16);
+  --primary-text: #86b6ef;
+  --focus-ring: rgba(57, 135, 229, 0.45);
+
+  --danger: #e66767;
+  --danger-hover: #ec8585;
+  --danger-soft: rgba(230, 103, 103, 0.14);
+
+  --sidebar-bg: #11161d;
+  --sidebar-text: #a9b4c2;
+  --sidebar-text-active: #ffffff;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+
+  --status-new-bg: rgba(57, 135, 229, 0.18);
+  --status-new-fg: #9ec5f4;
+  --status-in_progress-bg: rgba(144, 133, 233, 0.2);
+  --status-in_progress-fg: #c2baf5;
+  --status-waiting-bg: rgba(237, 161, 0, 0.18);
+  --status-waiting-fg: #f2c461;
+  --status-closed-bg: rgba(12, 163, 12, 0.18);
+  --status-closed-fg: #7fd07f;
+
+  --priority-low: #6b737d;
+  --priority-normal: #3987e5;
+  --priority-high: #e66767;
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --chart-grid: #262a30;
+  --chart-axis: #3a4049;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+:root {
+  @include light-theme;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --font: "Rubik Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sidebar-width: 240px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    @include dark-theme;
+  }
+}
+
+:root[data-theme="dark"] {
+  @include dark-theme;
+}
