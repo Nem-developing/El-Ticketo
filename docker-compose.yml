@@ -25,9 +25,7 @@ services:
       - elticketo-network
 
   elticketo-api:
-    build:
-      context: .
-      dockerfile: BackEnd/Dockerfile
+    image: elticketo/api:3.3
     restart: unless-stopped
     depends_on:
       elticketo-db:
@@ -50,9 +48,7 @@ services:
       - "traefik.http.services.elticketo-api.loadbalancer.server.port=8080"
 
   elticketo-app:
-    build:
-      context: .
-      dockerfile: FrontEnd/Dockerfile
+    image: elticketo/app:3.3
     restart: unless-stopped
     depends_on:
       - elticketo-api
