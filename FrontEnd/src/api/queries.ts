@@ -10,12 +10,15 @@ import {
 
 import { api } from "./client";
 import type {
+  Attachment,
   Comment,
+  Overview,
   Project,
   ProjectInput,
   Stats,
   Ticket,
   TicketCreate,
+  TicketEvent,
   TicketFilters,
   TicketUpdate,
   User,
@@ -31,11 +34,15 @@ const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 export const queryKeys = {
   me: ["me"] as const,
+  version: ["version"] as const,
   users: ["users"] as const,
   projects: ["projects"] as const,
   tickets: (filters?: TicketFilters) => (filters ? (["tickets", filters] as const) : ["tickets"]),
   ticket: (id: number) => ["ticket", id] as const,
   comments: (ticketId: number) => ["comments", ticketId] as const,
+  events: (ticketId: number) => ["events", ticketId] as const,
+  attachments: (ticketId: number) => ["attachments", ticketId] as const,
+  overview: ["overview"] as const,
   stats: (projectId?: number, days?: number) =>
     projectId === undefined ? ["stats"] : (["stats", projectId, days] as const),
 };
@@ -44,6 +51,7 @@ export const queryKeys = {
 function invalidateTicketViews(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.tickets() });
   queryClient.invalidateQueries({ queryKey: queryKeys.stats() });
+  queryClient.invalidateQueries({ queryKey: queryKeys.overview });
 }
 
 // --- Lecture --------------------------------------------------------------------
@@ -86,13 +94,51 @@ export const useStats = (projectId: number | undefined, days: number) =>
     enabled: projectId !== undefined,
   });
 
+export const useTicketEvents = (ticketId: number) =>
+  useQuery({
+    queryKey: queryKeys.events(ticketId),
+    queryFn: () => api.get<TicketEvent[]>(`/tickets/${ticketId}/events`),
+    refetchInterval: AUTO_REFRESH_MS,
+  });
+
+export const useAttachments = (ticketId: number) =>
+  useQuery({
+    queryKey: queryKeys.attachments(ticketId),
+    queryFn: () => api.get<Attachment[]>(`/tickets/${ticketId}/attachments`),
+    refetchInterval: AUTO_REFRESH_MS,
+  });
+
+export const useOverview = () =>
+  useQuery({
+    queryKey: queryKeys.overview,
+    queryFn: () => api.get<Overview>("/stats/overview"),
+    refetchInterval: AUTO_REFRESH_MS,
+  });
+
+/** Version déployée (tag git de la release). */
+export const useVersion = () =>
+  useQuery({
+    queryKey: queryKeys.version,
+    queryFn: () => api.get<{ version: string }>("/health"),
+    select: (health) => health.version,
+    staleTime: Infinity,
+  });
+
 // --- Tickets --------------------------------------------------------------------
 
+/** Crée le ticket puis envoie ses pièces jointes ; un fichier refusé n'annule pas la création. */
 export function useCreateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: TicketCreate) => api.post<Ticket>("/tickets", data),
-    onSuccess: (ticket) => {
+    mutationFn: async ({ data, files }: { data: TicketCreate; files: File[] }) => {
+      const ticket = await api.post<Ticket>("/tickets", data);
+      const uploads = await Promise.allSettled(
+        files.map((file) => api.upload(`/tickets/${ticket.id}/attachments`, file)),
+      );
+      const failedUploads = uploads.filter((upload) => upload.status === "rejected").length;
+      return { ticket, failedUploads };
+    },
+    onSuccess: ({ ticket }) => {
       queryClient.setQueryData(queryKeys.ticket(ticket.id), ticket);
       invalidateTicketViews(queryClient);
     },
@@ -105,6 +151,7 @@ export function useUpdateTicket(id: number) {
     mutationFn: (changes: TicketUpdate) => api.patch<Ticket>(`/tickets/${id}`, changes),
     onSuccess: (ticket) => {
       queryClient.setQueryData(queryKeys.ticket(id), ticket);
+      queryClient.invalidateQueries({ queryKey: queryKeys.events(id) });
       invalidateTicketViews(queryClient);
     },
   });
@@ -143,6 +190,25 @@ export function useCommentMutations(ticketId: number) {
     }),
     remove: useMutation({
       mutationFn: (id: number) => api.delete(`${base}/${id}`),
+      onSuccess,
+    }),
+  };
+}
+
+// --- Pièces jointes ---------------------------------------------------------------
+
+export function useAttachmentMutations(ticketId: number) {
+  const queryClient = useQueryClient();
+  const onSuccess = () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.attachments(ticketId) });
+
+  return {
+    upload: useMutation({
+      mutationFn: (file: File) => api.upload<Attachment>(`/tickets/${ticketId}/attachments`, file),
+      onSuccess,
+    }),
+    remove: useMutation({
+      mutationFn: (id: number) => api.delete(`/attachments/${id}`),
       onSuccess,
     }),
   };

@@ -1,3 +1,6 @@
 """El Ticketo — API de gestion de tickets."""
 
-__version__ = "4.0.0"
+import os
+
+# Tag git de la release, inscrit dans l'image Docker (voir cloudbuild.yaml).
+__version__ = os.getenv("ELTICKETO_VERSION", "dev")

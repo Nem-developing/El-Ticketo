@@ -60,7 +60,7 @@ def run_migrations(engine: Engine) -> None:
 
 def _reject_unmanaged_schema(connection: Connection) -> None:
     """Refuse une base qui contient déjà des tables sans historique de migrations
-    (schéma El Ticketo v3, ou base créée par une version de développement)."""
+    (El Ticketo avant la 3.0, ou base de développement)."""
     inspector = inspect(connection)
     if inspector.has_table("alembic_version") or not inspector.has_table("tickets"):
         return

@@ -8,6 +8,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { ThemeProvider } from "./context/ThemeProvider";
 import { ToastProvider } from "./context/ToastProvider";
 import { AccountPage } from "./pages/AccountPage";
+import { OverviewPage } from "./pages/admin/OverviewPage";
 import { ProjectsPage } from "./pages/admin/ProjectsPage";
 import { UsersPage } from "./pages/admin/UsersPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -48,6 +49,7 @@ export function App() {
                     <Route path="tickets/:ticketId" element={<TicketPage />} />
                     <Route path="account" element={<AccountPage />} />
                     <Route path="admin" element={<RequireAdmin />}>
+                      <Route path="overview" element={<OverviewPage />} />
                       <Route path="users" element={<UsersPage />} />
                       <Route path="projects" element={<ProjectsPage />} />
                     </Route>

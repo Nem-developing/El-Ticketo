@@ -1,14 +1,16 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { errorMessage } from "../../api/client";
-import { useCommentMutations, useComments } from "../../api/queries";
-import type { Comment } from "../../api/types";
+import { useCommentMutations, useComments, useTicketEvents } from "../../api/queries";
+import type { Comment, TicketEvent } from "../../api/types";
 import { useCurrentUser } from "../../auth/context";
 import { useToast } from "../../context/toast";
 import { formatDateTime, formatRelative } from "../../lib/format";
-import { MAX_LENGTH } from "../../lib/labels";
+import { describeEvent, MAX_LENGTH } from "../../lib/labels";
+import { useDraft } from "../../lib/useDraft";
 import { Avatar } from "../ui/Avatar";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { Linkify } from "../ui/Linkify";
 import { ErrorState, Loader } from "../ui/States";
 
 /** Ctrl/⌘ + Entrée envoie le formulaire courant. */
@@ -61,7 +63,9 @@ function CommentItem({
         </div>
 
         {draft === null ? (
-          <p className="comment__text">{comment.body}</p>
+          <p className="prose">
+            <Linkify text={comment.body} />
+          </p>
         ) : (
           <form onSubmit={save} className="comment__edit">
             <textarea
@@ -102,20 +106,46 @@ function CommentItem({
   );
 }
 
+function EventItem({ event }: { event: TicketEvent }) {
+  return (
+    <li className="event">
+      <span>
+        <strong>{event.actor.username}</strong> {describeEvent(event)}
+      </span>
+      <time dateTime={event.created_at} title={formatDateTime(event.created_at)}>
+        {formatRelative(event.created_at)}
+      </time>
+    </li>
+  );
+}
+
+const timestamp = (item: { created_at: string }) => new Date(item.created_at).getTime();
+
+/** Commentaires et historique des modifications, dans l'ordre chronologique. */
 export function CommentThread({ ticketId }: { ticketId: number }) {
   const user = useCurrentUser();
   const toast = useToast();
   const comments = useComments(ticketId);
+  const events = useTicketEvents(ticketId);
   const { add, remove } = useCommentMutations(ticketId);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft, clearDraft] = useDraft(`comment.${ticketId}`, "");
   const [toDelete, setToDelete] = useState<Comment | null>(null);
+
+  const timeline = [
+    ...(comments.data ?? []).map((comment) => ({
+      comment,
+      event: undefined,
+      at: timestamp(comment),
+    })),
+    ...(events.data ?? []).map((event) => ({ comment: undefined, event, at: timestamp(event) })),
+  ].sort((a, b) => a.at - b.at);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     // Ctrl+Entrée passe par requestSubmit(), qui ignore le bouton désactivé.
     if (add.isPending || !draft.trim()) return;
     add.mutate(draft.trim(), {
-      onSuccess: () => setDraft(""),
+      onSuccess: clearDraft,
       onError: (error) => toast.error(errorMessage(error)),
     });
   };
@@ -136,19 +166,23 @@ export function CommentThread({ ticketId }: { ticketId: number }) {
 
       {comments.isPending && <Loader />}
       {comments.isLoadingError && <ErrorState error={comments.error} onRetry={comments.refetch} />}
-      {comments.data && comments.data.length === 0 && (
+      {comments.data && timeline.length === 0 && (
         <p className="muted">Aucun commentaire pour l'instant.</p>
       )}
-      {comments.data && comments.data.length > 0 && (
+      {comments.data && timeline.length > 0 && (
         <ul className="comments">
-          {comments.data.map((comment) => (
-            <CommentItem
-              key={comment.id}
-              comment={comment}
-              ticketId={ticketId}
-              onDelete={setToDelete}
-            />
-          ))}
+          {timeline.map(({ comment, event }) =>
+            comment ? (
+              <CommentItem
+                key={`comment-${comment.id}`}
+                comment={comment}
+                ticketId={ticketId}
+                onDelete={setToDelete}
+              />
+            ) : (
+              <EventItem key={`event-${event.id}`} event={event} />
+            ),
+          )}
         </ul>
       )}
 

@@ -69,6 +69,7 @@ async function readErrorMessage(response: Response): Promise<string> {
     : `Erreur inattendue (${response.status}).`;
 }
 
+/** `body` est envoyé en JSON, sauf un fichier (Blob), envoyé tel quel. */
 async function request<T>(
   method: string,
   path: string,
@@ -77,14 +78,17 @@ async function request<T>(
   const token = tokenStorage.get();
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const isFile = body instanceof Blob;
+  if (body !== undefined) {
+    headers["Content-Type"] = isFile ? body.type || "application/octet-stream" : "application/json";
+  }
 
   let response: Response;
   try {
     response = await fetch(buildUrl(path, query), {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isFile ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, "Impossible de joindre le serveur.");
@@ -106,6 +110,8 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>("PUT", path, { body }),
   patch: <T>(path: string, body?: unknown) => request<T>("PATCH", path, { body }),
   delete: <T = void>(path: string) => request<T>("DELETE", path),
+  upload: <T>(path: string, file: File) =>
+    request<T>("POST", path, { body: file, query: { name: file.name } }),
 };
 
 export function errorMessage(error: unknown): string {

@@ -15,3 +15,11 @@ export function writeStorage(key: string, value: string) {
     // Préférence non persistée : sans conséquence.
   }
 }
+
+export function removeStorage(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Rien à nettoyer.
+  }
+}

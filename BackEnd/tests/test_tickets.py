@@ -41,9 +41,21 @@ def test_list_tickets_with_filters(client, admin, make_ticket):
         "Bienvenue sur El Ticketo !",
     }
     assert titles(q="vpn") == ["Accès VPN"]
+    assert titles(q=f"#{printer['id']}") == titles(q=str(printer["id"])) == ["Imprimante bloquée"]
+    assert titles(category="Réseau") == ["Accès VPN"]
+    assert titles(q="99999999999999999999") == []
     assert titles(q="100%") == []
     assert titles(project_id=999) == []
     assert len(titles(limit=1)) == 1
+
+
+def test_list_tickets_created_by_a_user(client, admin, member, make_ticket):
+    mine = make_ticket(headers=member, title="Écran noir")
+    make_ticket(title="Accès VPN")
+    me = client.get("/api/auth/me", headers=member).json()
+
+    response = client.get("/api/tickets", params={"created_by_id": me["id"]}, headers=admin)
+    assert [ticket["id"] for ticket in response.json()] == [mine["id"]]
 
 
 def test_closing_and_reopening_tracks_closed_at(client, admin, make_ticket):
@@ -76,6 +88,35 @@ def test_assign_and_unassign(client, admin, member, make_ticket):
 
     unknown = client.patch(f"/api/tickets/{ticket['id']}", json={"assignee_id": 999}, headers=admin)
     assert unknown.status_code == 400
+
+
+def test_move_ticket_to_another_project(client, admin, make_ticket):
+    ticket = make_ticket()
+    other = client.post("/api/projects", json={"name": "Réseau"}, headers=admin).json()
+
+    moved = client.patch(
+        f"/api/tickets/{ticket['id']}", json={"project_id": other["id"]}, headers=admin
+    )
+    assert moved.json()["project_id"] == other["id"]
+
+    unknown = client.patch(f"/api/tickets/{ticket['id']}", json={"project_id": 999}, headers=admin)
+    assert unknown.status_code == 404
+
+
+def test_changes_are_recorded_in_history(client, admin, member, make_ticket):
+    ticket = make_ticket()
+    url = f"/api/tickets/{ticket['id']}"
+    me = client.get("/api/auth/me", headers=member).json()
+    client.patch(url, json={"status": "in_progress", "assignee_id": me["id"]}, headers=member)
+    client.patch(url, json={"description": "Plus de détails", "priority": "normal"}, headers=admin)
+
+    events = client.get(f"{url}/events", headers=admin).json()
+    assert [(e["actor"]["username"], e["field"], e["value"]) for e in events] == [
+        ("alice", "status", "in_progress"),
+        ("alice", "assignee", "alice"),
+        # La priorité inchangée (« normal ») n'est pas inscrite.
+        ("admin", "description", None),
+    ]
 
 
 def test_partial_update_ignores_nulls_on_required_fields(client, admin, make_ticket):

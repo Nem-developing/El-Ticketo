@@ -77,6 +77,10 @@ fieldset {
 .prose {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+
+  a {
+    text-decoration: underline;
+  }
 }
 
 .is-refreshing {

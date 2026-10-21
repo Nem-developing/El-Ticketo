@@ -3,9 +3,10 @@
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, computed_field
 
 from app.models import TicketPriority, TicketStatus
+from app.security import attachment_url
 
 Username = Annotated[
     str,
@@ -137,6 +138,7 @@ class TicketUpdate(BaseModel):
     priority: TicketPriority | None = None
     status: TicketStatus | None = None
     assignee_id: int | None = None
+    project_id: int | None = None
 
 
 # --- Commentaires -------------------------------------------------------------
@@ -153,6 +155,32 @@ class CommentOut(ORMModel):
 
 class CommentWrite(BaseModel):
     body: CommentBody
+
+
+# --- Historique et pièces jointes ---------------------------------------------
+
+
+class TicketEventOut(ORMModel):
+    id: int
+    actor: UserSummary
+    field: Literal["title", "description", "category", "priority", "status", "assignee", "project"]
+    value: str | None
+    created_at: datetime
+
+
+class AttachmentOut(ORMModel):
+    id: int
+    ticket_id: int
+    filename: str
+    content_type: str
+    size: int
+    uploaded_by: UserSummary
+    created_at: datetime
+
+    @computed_field(description="Lien signé vers le fichier, valable au moins une heure.")
+    @property
+    def url(self) -> str:
+        return attachment_url(self.id)
 
 
 # --- Statistiques -------------------------------------------------------------
@@ -181,6 +209,31 @@ class StatsOut(BaseModel):
     counts: StatusCounts
     by_category: list[CategoryCount]
     timeline: list[TimelinePoint] = Field(description="Tickets créés et fermés par jour (UTC).")
+
+
+class Workload(BaseModel):
+    open: int
+    closed_recently: int = Field(description="Tickets fermés ces 30 derniers jours.")
+
+
+class ProjectOverview(Workload):
+    id: int
+    name: str
+    unassigned: int
+    stale: int = Field(description="Tickets ouverts depuis plus de 7 jours.")
+    resolution_hours: float | None = Field(
+        description="Délai moyen de résolution des tickets fermés ces 30 derniers jours."
+    )
+
+
+class PersonOverview(Workload):
+    user: UserOut
+
+
+class OverviewOut(BaseModel):
+    projects: list[ProjectOverview]
+    people: list[PersonOverview]
+    oldest_open: list[TicketOut]
 
 
 # --- Divers -------------------------------------------------------------------

@@ -6,9 +6,17 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import Select, func, select
 
-from app.deps import CurrentUser, DbSession
-from app.models import Ticket, TicketStatus
-from app.schemas import CategoryCount, StatsOut, StatusCounts, TimelinePoint
+from app.deps import AdminUser, CurrentUser, DbSession
+from app.models import Project, Ticket, TicketStatus, User, utcnow
+from app.schemas import (
+    CategoryCount,
+    OverviewOut,
+    PersonOverview,
+    ProjectOverview,
+    StatsOut,
+    StatusCounts,
+    TimelinePoint,
+)
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -76,3 +84,61 @@ def get_stats(
     ]
 
     return StatsOut(counts=counts, by_category=by_category, timeline=timeline)
+
+
+STALE_AFTER = timedelta(days=7)
+RECENT = timedelta(days=30)
+
+
+@router.get("/overview", response_model=OverviewOut)
+def get_overview(db: DbSession, _: AdminUser):
+    """Charge de travail par projet et par personne, tous projets confondus (admin)."""
+    now = utcnow()
+    open_tickets = db.execute(
+        select(Ticket.project_id, Ticket.assignee_id, Ticket.created_at).where(
+            Ticket.status != TicketStatus.CLOSED
+        )
+    ).all()
+    closed_tickets = db.execute(
+        select(Ticket.project_id, Ticket.assignee_id, Ticket.created_at, Ticket.closed_at).where(
+            Ticket.closed_at >= now - RECENT
+        )
+    ).all()
+
+    projects = []
+    for project in db.scalars(select(Project).order_by(Project.name)):
+        opened = [row for row in open_tickets if row.project_id == project.id]
+        closed = [row for row in closed_tickets if row.project_id == project.id]
+        hours = [(row.closed_at - row.created_at).total_seconds() / 3600 for row in closed]
+        projects.append(
+            ProjectOverview(
+                id=project.id,
+                name=project.name,
+                open=len(opened),
+                unassigned=sum(row.assignee_id is None for row in opened),
+                stale=sum(now - row.created_at > STALE_AFTER for row in opened),
+                closed_recently=len(closed),
+                resolution_hours=sum(hours) / len(hours) if hours else None,
+            )
+        )
+
+    open_per_person = Counter(row.assignee_id for row in open_tickets)
+    closed_per_person = Counter(row.assignee_id for row in closed_tickets)
+    users = db.scalars(select(User).order_by(User.username))
+    # Un compte désactivé reste listé tant qu'il a des tickets ouverts : ils sont à réassigner.
+    people = [
+        PersonOverview(
+            user=user, open=open_per_person[user.id], closed_recently=closed_per_person[user.id]
+        )
+        for user in users
+        if user.is_active or open_per_person[user.id]
+    ]
+    people.sort(key=lambda person: -person.open)
+
+    oldest_open = db.scalars(
+        select(Ticket)
+        .where(Ticket.status != TicketStatus.CLOSED)
+        .order_by(Ticket.created_at, Ticket.id)
+        .limit(5)
+    ).all()
+    return OverviewOut(projects=projects, people=people, oldest_open=oldest_open)

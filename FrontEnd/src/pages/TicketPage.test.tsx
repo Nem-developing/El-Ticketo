@@ -31,6 +31,18 @@ function mockTicketApi() {
     }
     if (url.pathname === "/api/tickets/7") return jsonResponse(TICKET);
     if (url.pathname === "/api/tickets/7/comments") return jsonResponse([]);
+    if (url.pathname === "/api/tickets/7/attachments") return jsonResponse([]);
+    if (url.pathname === "/api/tickets/7/events") {
+      return jsonResponse([
+        {
+          id: 1,
+          actor: { id: ALICE.id, username: "alice" },
+          field: "status",
+          value: "waiting",
+          created_at: "2026-10-20T09:00:00Z",
+        },
+      ]);
+    }
     if (url.pathname === "/api/users") return jsonResponse([ALICE]);
     return jsonResponse({ detail: "Ticket introuvable." }, 404);
   });
@@ -49,6 +61,14 @@ describe("TicketPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
 
     await waitFor(() => expect(patches).toEqual([{ category: "Matériel" }]));
+  });
+
+  it("affiche l'historique des modifications dans le fil", async () => {
+    mockTicketApi();
+    renderPage(<TicketPage />, { path: "/tickets/:ticketId", route: "/tickets/7" });
+
+    const event = await screen.findByText("a passé le statut à « En attente »");
+    expect(event.closest("li")).toHaveTextContent("alice a passé le statut à « En attente »");
   });
 
   it("« Prendre en charge » passe le ticket en cours et me l'assigne", async () => {

@@ -1,13 +1,23 @@
 """Modèle de données.
 
-Volontairement minimal : des utilisateurs (admin ou membre), des projets, des tickets
-et leurs commentaires. Toutes les dates sont stockées en UTC.
+Volontairement minimal : des utilisateurs (admin ou membre), des projets, des tickets,
+leurs commentaires, pièces jointes et historique. Toutes les dates sont stockées en UTC.
 """
 
 import enum
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, Text, TypeDecorator
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    LargeBinary,
+    String,
+    Text,
+    TypeDecorator,
+)
+from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -138,3 +148,52 @@ class Comment(Base):
 
     ticket: Mapped[Ticket] = relationship(back_populates="comments")
     author: Mapped[User] = relationship(lazy="joined")
+
+
+class TicketEvent(Base):
+    """Modification d'un ticket (statut, assignation…), affichée dans son historique."""
+
+    __tablename__ = "ticket_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id", ondelete="CASCADE"), index=True)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    field: Mapped[str] = mapped_column(String(20))
+    # Nouvelle valeur, lisible telle quelle (nom de l'assigné, du projet…).
+    value: Mapped[str | None] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+    actor: Mapped[User] = relationship(lazy="joined")
+
+
+class Attachment(Base):
+    """Fichier joint à un ticket ; son contenu est stocké en base, en morceaux."""
+
+    __tablename__ = "attachments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id", ondelete="CASCADE"), index=True)
+    uploaded_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    filename: Mapped[str] = mapped_column(String(200))
+    content_type: Mapped[str] = mapped_column(String(100))
+    size: Mapped[int]
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+    uploaded_by: Mapped[User] = relationship(lazy="joined")
+
+
+# Jusqu'à 16 Mo sous MariaDB (un BLOB simple s'arrête à 64 Ko).
+ChunkData = LargeBinary().with_variant(mysql.MEDIUMBLOB(), "mysql", "mariadb")
+
+
+class AttachmentChunk(Base):
+    """Morceau d'une pièce jointe : découpé ainsi, un fichier d'1 Go tient en base sans
+    dépasser la taille maximale d'une requête MariaDB."""
+
+    __tablename__ = "attachment_chunks"
+
+    attachment_id: Mapped[int] = mapped_column(
+        ForeignKey("attachments.id", ondelete="CASCADE"), primary_key=True
+    )
+    position: Mapped[int] = mapped_column(primary_key=True)
+    data: Mapped[bytes] = mapped_column(ChunkData)

@@ -3,9 +3,15 @@
 Gestion de tickets **simple** : on ouvre un ticket en quelques secondes, on le prend en charge,
 on commente, on le ferme. Pas de workflow à configurer, pas de formulaire à rallonge.
 
+Ce n'est pas un ITSM et ça ne le deviendra pas : voir la [philosophie du projet](PHILOSOPHIE.md).
+
 - **Tickets** : titre, description, catégorie, priorité, statut (Nouveau → En cours → En attente → Fermé), assigné.
-- **Commentaires** sur chaque ticket.
+- **Pièces jointes** : collez une capture d'écran (Ctrl + V) ou glissez un fichier, 1 Go au plus.
+- **Commentaires** et **historique** automatique des modifications (statut, assignation, projet…).
+- **Mes tickets** (qui me sont assignés), **Mes demandes** (que j'ai ouverts), recherche par mot ou
+  par n°, export CSV.
 - **Tableau de bord** : compteurs par statut, activité quotidienne, répartition par catégorie.
+- **Vue d'ensemble** (administrateurs) : charge par projet et par personne, délai de résolution.
 - **Projets** pour séparer plusieurs services ou équipes.
 - **Deux rôles** : membre (gère les tickets) et administrateur (gère aussi les comptes et les projets).
 
@@ -13,7 +19,7 @@ on commente, on le ferme. Pas de workflow à configurer, pas de formulaire à ra
 
 ```bash
 cp .env.example .env   # puis renseignez DB_PASSWORD et ADMIN_PASSWORD
-docker compose up -d --build
+docker compose up -d
 ```
 
 L'application est disponible sur <http://localhost:8080> (API et documentation Swagger sur
@@ -23,6 +29,14 @@ choisi dans `.env`.
 Outils optionnels : `docker compose --profile tools up -d` ajoute phpMyAdmin sur
 <http://localhost:8080/phpmyadmin/>.
 
+Pour passer à la dernière version (la base est migrée automatiquement) :
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Pour rester sur une version précise, renseignez `ELTICKETO_VERSION` dans `.env` (ex. `3.4`).
+
 Pour tout arrêter et repartir d'une base vide :
 
 ```bash
@@ -30,10 +44,20 @@ docker compose down -v
 ```
 
 > **En production :** la pile est servie en HTTP. Placez-la derrière un proxy TLS (ou ajoutez un
-> point d'entrée HTTPS à Traefik) et ne publiez pas phpMyAdmin.
+> point d'entrée HTTPS à Traefik) et ne publiez pas phpMyAdmin. Les pièces jointes sont stockées
+> dans la base : la sauvegarder suffit.
 >
-> **Mise à jour depuis la v3 :** le schéma de la base a changé. L'API refuse de démarrer sur une
-> ancienne base : repartez d'une base vide (`docker compose down -v`).
+> **Mise à jour depuis une version 2.x :** le schéma de la base a changé. L'API refuse de démarrer
+> sur une ancienne base : repartez d'une base vide (`docker compose down -v`).
+
+## Lien « Signaler un problème »
+
+Un lien vers `/tickets/new` peut pré-remplir le formulaire, depuis l'intranet ou un outil de
+supervision. Tous les paramètres sont facultatifs (`project` est l'identifiant du projet) :
+
+```text
+https://tickets.exemple.fr/tickets/new?title=Imprimante%20HS&category=Matériel&priority=high&project=2
+```
 
 ## Architecture
 
@@ -62,6 +86,12 @@ npm run dev
 Avant de pousser : `pytest` + `ruff` côté API, `npm run lint`, `npm test` et `npm run build`
 côté application. La CI GitHub Actions rejoue tout cela (API testée sur SQLite et MariaDB) et
 construit les deux images Docker.
+
+## Publier une version
+
+Publiez une release GitHub (tag `3.4`, par exemple) : Cloud Build (`cloudbuild.yaml`) pousse les
+images `elticketo/api` et `elticketo/app` sous ce tag et sous `latest`. Le numéro de version n'est
+écrit nulle part dans le code.
 
 ## Licence
 

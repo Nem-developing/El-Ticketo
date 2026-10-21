@@ -5,12 +5,30 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.deps import AdminUser, CurrentUser, DbSession, get_or_404
-from app.models import Comment, Project, Ticket, TicketStatus, User, utcnow
-from app.schemas import CommentOut, CommentWrite, TicketCreate, TicketOut, TicketUpdate
+from app.models import Comment, Project, Ticket, TicketEvent, TicketStatus, User, utcnow
+from app.schemas import (
+    CommentOut,
+    CommentWrite,
+    TicketCreate,
+    TicketEventOut,
+    TicketOut,
+    TicketUpdate,
+)
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 TICKET_NOT_FOUND = "Ticket introuvable."
+
+# Champs dont chaque modification est inscrite dans l'historique du ticket.
+TRACKED_FIELDS = (
+    "title",
+    "description",
+    "category",
+    "priority",
+    "status",
+    "assignee_id",
+    "project_id",
+)
 
 
 @router.get("", response_model=list[TicketOut])
@@ -20,8 +38,10 @@ def list_tickets(
     project_id: int | None = None,
     status_: Annotated[list[TicketStatus] | None, Query(alias="status")] = None,
     assignee_id: int | None = None,
+    created_by_id: int | None = None,
+    category: Annotated[str | None, Query(max_length=50)] = None,
     q: Annotated[
-        str | None, Query(max_length=100, description="Recherche titre/description")
+        str | None, Query(max_length=100, description="Recherche titre, description ou n°")
     ] = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
@@ -34,14 +54,20 @@ def list_tickets(
         query = query.where(Ticket.status.in_(status_))
     if assignee_id is not None:
         query = query.where(Ticket.assignee_id == assignee_id)
+    if created_by_id is not None:
+        query = query.where(Ticket.created_by_id == created_by_id)
+    if category is not None:
+        query = query.where(Ticket.category == category)
     if q and q.strip():
         term = q.strip()
-        query = query.where(
-            or_(
-                Ticket.title.icontains(term, autoescape=True),
-                Ticket.description.icontains(term, autoescape=True),
-            )
-        )
+        matches = [
+            Ticket.title.icontains(term, autoescape=True),
+            Ticket.description.icontains(term, autoescape=True),
+        ]
+        number = term.removeprefix("#")
+        if number.isdecimal() and int(number) < 2**31:
+            matches.append(Ticket.id == int(number))
+        query = query.where(or_(*matches))
     query = query.order_by(Ticket.created_at.desc(), Ticket.id.desc()).limit(limit).offset(offset)
     return db.scalars(query).all()
 
@@ -61,10 +87,11 @@ def get_ticket(ticket_id: int, db: DbSession, _: CurrentUser):
 
 
 @router.patch("/{ticket_id}", response_model=TicketOut)
-def update_ticket(ticket_id: int, payload: TicketUpdate, db: DbSession, _: CurrentUser):
-    """Modifie un ticket : contenu, priorité, statut ou assignation."""
+def update_ticket(ticket_id: int, payload: TicketUpdate, db: DbSession, user: CurrentUser):
+    """Modifie un ticket : contenu, priorité, statut, assignation ou projet."""
     ticket = get_or_404(db, Ticket, ticket_id, TICKET_NOT_FOUND)
     changes = payload.model_dump(exclude_unset=True)
+    before = {field: getattr(ticket, field) for field in TRACKED_FIELDS}
 
     if "assignee_id" in changes:
         assignee_id = changes.pop("assignee_id")
@@ -76,6 +103,10 @@ def update_ticket(ticket_id: int, payload: TicketUpdate, db: DbSession, _: Curre
                 )
         ticket.assignee_id = assignee_id
 
+    if (project_id := changes.pop("project_id", None)) is not None:
+        get_or_404(db, Project, project_id, "Projet introuvable.")
+        ticket.project_id = project_id
+
     if (new_status := changes.pop("status", None)) is not None:
         ticket.set_status(new_status)
 
@@ -83,14 +114,48 @@ def update_ticket(ticket_id: int, payload: TicketUpdate, db: DbSession, _: Curre
         if value is not None:
             setattr(ticket, field, value)
 
+    for field in TRACKED_FIELDS:
+        if (value := getattr(ticket, field)) != before[field]:
+            db.add(
+                TicketEvent(
+                    ticket_id=ticket.id,
+                    actor_id=user.id,
+                    field=field.removesuffix("_id"),
+                    value=_event_value(db, field, value),
+                )
+            )
+
     db.commit()
     return ticket
+
+
+def _event_value(db: Session, field: str, value) -> str | None:
+    """Valeur affichée dans l'historique (la description, trop longue, n'y figure pas)."""
+    if value is None or field == "description":
+        return None
+    if field == "assignee_id":
+        return db.get(User, value).username
+    if field == "project_id":
+        return db.get(Project, value).name
+    return str(value)
 
 
 @router.delete("/{ticket_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_ticket(ticket_id: int, db: DbSession, _: AdminUser) -> None:
     db.delete(get_or_404(db, Ticket, ticket_id, TICKET_NOT_FOUND))
     db.commit()
+
+
+@router.get("/{ticket_id}/events", response_model=list[TicketEventOut], tags=["history"])
+def list_events(ticket_id: int, db: DbSession, _: CurrentUser):
+    """Historique des modifications du ticket, du plus ancien au plus récent."""
+    get_or_404(db, Ticket, ticket_id, TICKET_NOT_FOUND)
+    query = (
+        select(TicketEvent)
+        .where(TicketEvent.ticket_id == ticket_id)
+        .order_by(TicketEvent.created_at, TicketEvent.id)
+    )
+    return db.scalars(query).all()
 
 
 # --- Commentaires -------------------------------------------------------------

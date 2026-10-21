@@ -45,6 +45,46 @@ export interface Comment {
   updated_at: string | null;
 }
 
+export type TicketField =
+  "title" | "description" | "category" | "priority" | "status" | "assignee" | "project";
+
+export interface TicketEvent {
+  id: number;
+  actor: UserSummary;
+  field: TicketField;
+  value: string | null;
+  created_at: string;
+}
+
+export interface Attachment {
+  id: number;
+  ticket_id: number;
+  filename: string;
+  content_type: string;
+  size: number;
+  uploaded_by: UserSummary;
+  created_at: string;
+  /** Lien signé vers le fichier, utilisable sans token (balise <img>, téléchargement). */
+  url: string;
+}
+
+export interface Workload {
+  open: number;
+  closed_recently: number;
+}
+
+export interface Overview {
+  projects: (Workload & {
+    id: number;
+    name: string;
+    unassigned: number;
+    stale: number;
+    resolution_hours: number | null;
+  })[];
+  people: (Workload & { user: User })[];
+  oldest_open: Ticket[];
+}
+
 export interface Stats {
   counts: Record<TicketStatus | "total", number>;
   by_category: { category: string; count: number }[];
@@ -66,13 +106,15 @@ export interface TicketCreate {
 }
 
 export type TicketUpdate = Partial<
-  Pick<Ticket, "title" | "description" | "category" | "priority" | "status">
+  Pick<Ticket, "title" | "description" | "category" | "priority" | "status" | "project_id">
 > & { assignee_id?: number | null };
 
 export interface TicketFilters {
   project_id?: number;
   status?: TicketStatus[];
   assignee_id?: number;
+  created_by_id?: number;
+  category?: string;
   q?: string;
   limit?: number;
 }

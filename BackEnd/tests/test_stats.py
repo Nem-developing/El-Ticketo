@@ -66,3 +66,44 @@ def test_stats_reject_an_unknown_timezone(client, admin):
     for tz in ("Mars/Olympus", "../etc/passwd", ""):
         response = client.get("/api/stats", params={"tz": tz}, headers=admin)
         assert response.status_code == 422, tz
+
+
+def test_overview_shows_workload_per_project_and_person(client, admin, member, make_ticket):
+    alice = client.get("/api/auth/me", headers=member).json()
+    assigned = make_ticket()
+    client.patch(f"/api/tickets/{assigned['id']}", json={"assignee_id": alice["id"]}, headers=admin)
+    closed = make_ticket()
+    client.patch(f"/api/tickets/{closed['id']}", json={"status": "closed"}, headers=admin)
+
+    assert client.get("/api/stats/overview", headers=member).status_code == 403
+    overview = client.get("/api/stats/overview", headers=admin).json()
+
+    # Ouverts : le ticket de bienvenue et celui assigné à alice.
+    [project] = overview["projects"]
+    assert project["open"] == 2
+    assert project["unassigned"] == 1
+    assert project["stale"] == 0
+    assert project["closed_recently"] == 1
+    assert project["resolution_hours"] < 1
+    assert [(p["user"]["username"], p["open"]) for p in overview["people"]] == [
+        ("alice", 1),
+        ("admin", 0),
+    ]
+    assert [t["title"] for t in overview["oldest_open"]][0] == "Bienvenue sur El Ticketo !"
+
+
+def test_overview_keeps_deactivated_people_who_still_have_tickets(
+    client, admin, member, make_ticket
+):
+    alice = client.get("/api/auth/me", headers=member).json()
+    ticket = make_ticket()
+    client.patch(f"/api/tickets/{ticket['id']}", json={"assignee_id": alice["id"]}, headers=admin)
+    client.patch(f"/api/users/{alice['id']}", json={"is_active": False}, headers=admin)
+
+    def people():
+        overview = client.get("/api/stats/overview", headers=admin).json()
+        return [(p["user"]["username"], p["user"]["is_active"]) for p in overview["people"]]
+
+    assert ("alice", False) in people()
+    client.patch(f"/api/tickets/{ticket['id']}", json={"assignee_id": None}, headers=admin)
+    assert "alice" not in [username for username, _ in people()]

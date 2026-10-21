@@ -333,6 +333,12 @@ textarea.input {
   overflow: hidden;
 }
 
+.card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .card__header {
   display: flex;
   align-items: center;
@@ -475,9 +481,8 @@ textarea.input {
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
 
 .tabs__tab {
@@ -664,6 +669,17 @@ textarea.input {
   &::backdrop {
     background: rgba(15, 18, 22, 0.5);
   }
+}
+
+.modal:has(.image-viewer) {
+  width: min(960px, calc(100vw - 32px));
+}
+
+.image-viewer img {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  margin: 0 auto;
 }
 
 .modal__content {

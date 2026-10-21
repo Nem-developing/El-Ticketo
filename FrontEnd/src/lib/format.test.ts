@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ageInDays, formatRelative } from "./format";
+import { ageInDays, formatDuration, formatRelative, formatSize } from "./format";
 
 const NOW = Date.parse("2026-10-20T12:00:00Z");
 
@@ -20,5 +20,24 @@ describe("ageInDays", () => {
   it("compte les jours entiers écoulés", () => {
     expect(ageInDays("2026-10-13T13:00:00Z", NOW)).toBe(6);
     expect(ageInDays("2026-10-13T11:00:00Z", NOW)).toBe(7);
+  });
+});
+
+describe("formatSize et formatDuration", () => {
+  it.each([
+    [512, "512 o"],
+    [2048, "2 Ko"],
+    [1.5 * 1024 ** 2, "1,5 Mo"],
+    [1024 ** 3, "1 Go"],
+  ])("%d octets → %s", (bytes, expected) => {
+    expect(formatSize(bytes)).toBe(expected);
+  });
+
+  it.each([
+    [0.25, "15 min"],
+    [5.4, "5 h"],
+    [60, "2,5 j"],
+  ])("%s h → %s", (hours, expected) => {
+    expect(formatDuration(hours)).toBe(expected);
   });
 });

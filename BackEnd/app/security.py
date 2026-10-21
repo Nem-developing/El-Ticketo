@@ -1,9 +1,10 @@
-"""Hachage des mots de passe (scrypt, bibliothèque standard) et génération des tokens."""
+"""Hachage des mots de passe (scrypt, bibliothèque standard), tokens et liens signés."""
 
 import base64
 import hashlib
 import hmac
 import secrets
+import time
 
 _SCRYPT_N = 2**14
 _SCRYPT_R = 8
@@ -50,3 +51,26 @@ def generate_token() -> str:
 
 def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+# Une balise <img> ou un lien de téléchargement ne peut pas envoyer le token de session :
+# les fichiers sont servis par des liens signés, que la liste des pièces jointes fournit.
+# La clé change à chaque démarrage, ce qui invalide les anciens liens.
+_LINK_KEY = secrets.token_bytes(32)
+
+
+def _signature(attachment_id: int, expires: int) -> str:
+    message = f"{attachment_id}:{expires}".encode()
+    return hmac.new(_LINK_KEY, message, hashlib.sha256).hexdigest()
+
+
+def attachment_url(attachment_id: int) -> str:
+    # Valable 1 à 2 h et identique pendant une heure : le navigateur garde l'image en cache.
+    expires = (int(time.time()) // 3600 + 2) * 3600
+    signature = _signature(attachment_id, expires)
+    return f"/api/attachments/{attachment_id}/file?expires={expires}&signature={signature}"
+
+
+def is_valid_attachment_link(attachment_id: int, expires: int, signature: str) -> bool:
+    expected = _signature(attachment_id, expires)
+    return expires > time.time() and hmac.compare_digest(signature.encode(), expected.encode())

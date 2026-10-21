@@ -67,6 +67,7 @@ uv pip compile requirements-dev.in -o requirements-dev.txt --python-version 3.12
 | `LOGIN_LOCKOUT_MINUTES` | `15`        | …de cette durée, par couple adresse IP / identifiant           |
 | `CORS_ORIGINS`          | *(vide)*    | Origines autorisées, séparées par des virgules                 |
 | `FORWARDED_ALLOW_IPS`   | réseaux privés (image Docker) | Proxys autorisés à transmettre l'IP du client |
+| `ELTICKETO_VERSION`     | `dev`       | Version affichée, fixée dans l'image par `cloudbuild.yaml`     |
 
 Une valeur invalide (nombre mal formé, identifiant admin incorrect…) empêche le démarrage avec un
 message explicite.
@@ -78,6 +79,9 @@ message explicite.
 - **Tickets** : titre, description, catégorie (texte libre), priorité (`low` / `normal` / `high`),
   statut (`new` → `in_progress` → `waiting` → `closed`), assigné optionnel.
 - **Commentaires** : modifiables par leur auteur, supprimables par l'auteur ou un admin.
+- **Pièces jointes** : 1 Go au plus, stockées en base par morceaux de 4 Mo ; supprimables par leur
+  auteur ou un admin.
+- **Historique** : chaque modification d'un ticket (statut, assignation, projet…) est inscrite.
 
 ## Routes principales
 
@@ -90,12 +94,17 @@ message explicite.
 | POST · PATCH | `/api/users` · `/api/users/{id}`                                    | admin                            |
 | GET          | `/api/projects`                                                     | connecté                         |
 | POST · PATCH | `/api/projects` · `/api/projects/{id}`                              | admin                            |
-| GET · POST   | `/api/tickets` (filtres `project_id`, `status`, `assignee_id`, `q`) | connecté                         |
-| GET · PATCH  | `/api/tickets/{id}`                                                 | connecté                         |
+| GET · POST   | `/api/tickets` (filtres `project_id`, `status`, `assignee_id`, `created_by_id`, `category`, `q`) | connecté |
+| GET · PATCH  | `/api/tickets/{id}` (le PATCH accepte aussi `project_id`)           | connecté                         |
 | DELETE       | `/api/tickets/{id}`                                                 | admin                            |
 | GET · POST   | `/api/tickets/{id}/comments`                                        | connecté                         |
 | PATCH/DELETE | `/api/tickets/{id}/comments/{comment_id}`                           | auteur (ou admin pour supprimer) |
+| GET          | `/api/tickets/{id}/events` (historique)                             | connecté                         |
+| GET · POST   | `/api/tickets/{id}/attachments` (POST : fichier brut, `?name=`)     | connecté                         |
+| GET          | `/api/attachments/{id}/file` (lien signé fourni par la liste)       | lien signé                       |
+| DELETE       | `/api/attachments/{id}`                                             | auteur ou admin                  |
 | GET          | `/api/stats?project_id=&days=30&tz=Europe/Paris`                    | connecté                         |
+| GET          | `/api/stats/overview` (charge par projet et par personne)           | admin                            |
 
 ## Données de démonstration
 

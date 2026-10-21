@@ -3,15 +3,26 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { ApiError, errorMessage } from "../api/client";
-import { useDeleteTicket, useTicket, useUpdateTicket, useUsers } from "../api/queries";
+import {
+  useAttachmentMutations,
+  useDeleteTicket,
+  useTicket,
+  useUpdateTicket,
+  useUsers,
+} from "../api/queries";
 import type { Ticket, TicketPriority, TicketStatus, TicketUpdate } from "../api/types";
 import { useCurrentUser } from "../auth/context";
+import { Attachments } from "../components/tickets/Attachments";
 import { CommentThread } from "../components/tickets/CommentThread";
 import { PriorityBadge, StatusBadge } from "../components/ui/Badges";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { Field } from "../components/ui/Field";
+import { FilePicker } from "../components/ui/FilePicker";
+import { Linkify } from "../components/ui/Linkify";
 import { EmptyState, ErrorState, Loader } from "../components/ui/States";
+import { useProjectContext } from "../context/project";
 import { useToast } from "../context/toast";
+import { dropFiles } from "../lib/files";
 import { formatDateTime, formatRelative } from "../lib/format";
 import {
   MAX_LENGTH,
@@ -21,6 +32,7 @@ import {
   STATUS_LABELS,
   SUGGESTED_CATEGORIES,
 } from "../lib/labels";
+import { usePastedFiles } from "../lib/usePastedFiles";
 
 function ContentEditor({
   ticket,
@@ -102,10 +114,12 @@ function ContentEditor({
 function TicketDetails({ ticket }: { ticket: Ticket }) {
   const user = useCurrentUser();
   const users = useUsers();
+  const { projects } = useProjectContext();
   const toast = useToast();
   const navigate = useNavigate();
   const update = useUpdateTicket(ticket.id);
   const remove = useDeleteTicket(ticket.id);
+  const { upload } = useAttachmentMutations(ticket.id);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -114,6 +128,12 @@ function TicketDetails({ ticket }: { ticket: Ticket }) {
       onSuccess: () => onDone?.(),
       onError: (error) => toast.error(errorMessage(error)),
     });
+
+  const attach = (files: File[]) =>
+    files.forEach((file) =>
+      upload.mutate(file, { onError: (error) => toast.error(errorMessage(error)) }),
+    );
+  usePastedFiles(attach);
 
   const deleteTicket = () =>
     remove.mutate(undefined, {
@@ -131,7 +151,7 @@ function TicketDetails({ ticket }: { ticket: Ticket }) {
   );
 
   return (
-    <div className="page">
+    <div className="page" {...dropFiles(attach)}>
       <Link to="/tickets" className="back-link">
         <ArrowLeft size={16} aria-hidden="true" />
         Tickets
@@ -194,18 +214,24 @@ function TicketDetails({ ticket }: { ticket: Ticket }) {
               <>
                 <header className="card__header">
                   <h2 className="card__title">Description</h2>
-                  <button type="button" className="link-button" onClick={() => setEditing(true)}>
-                    <Pencil size={14} aria-hidden="true" />
-                    Modifier
-                  </button>
+                  <div className="card__actions">
+                    <FilePicker onFiles={attach} pending={upload.isPending} />
+                    <button type="button" className="link-button" onClick={() => setEditing(true)}>
+                      <Pencil size={14} aria-hidden="true" />
+                      Modifier
+                    </button>
+                  </div>
                 </header>
                 {ticket.description ? (
-                  <p className="prose">{ticket.description}</p>
+                  <p className="prose">
+                    <Linkify text={ticket.description} />
+                  </p>
                 ) : (
                   <p className="muted">Pas de description.</p>
                 )}
               </>
             )}
+            <Attachments ticketId={ticket.id} />
           </section>
 
           <CommentThread ticketId={ticket.id} />
@@ -244,6 +270,24 @@ function TicketDetails({ ticket }: { ticket: Ticket }) {
                 ))}
               </select>
             </Field>
+
+            {projects.length > 1 && (
+              <Field label="Projet" htmlFor="project">
+                <select
+                  id="project"
+                  className="input"
+                  value={ticket.project_id}
+                  disabled={update.isPending}
+                  onChange={(event) => save({ project_id: Number(event.target.value) })}
+                >
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
 
             <Field label="Assigné à" htmlFor="assignee">
               <select

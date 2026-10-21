@@ -1,12 +1,14 @@
 logsBucket: 'gs://prod-nehemiebarkia-fix-builds'
 
+# Lancé à la publication d'une release : les images sont poussées sous le tag (ex. 3.4) et sous latest.
+
 substitutions:
   _DOCKERHUB_USER: 'elticketo'
 options:
   logging: GCS_ONLY
 
 steps:
-  # Login   
+  # Login
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
     args: ['-c', 'docker login --username=$$DOCKERHUB_USERNAME --password=$$DOCKERHUB_PASSWORD']
@@ -16,17 +18,19 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
     - 'build'
+    - '--build-arg'
+    - 'VERSION=${TAG_NAME}'
     - '-t'
     - 'docker.io/${_DOCKERHUB_USER}/api:${TAG_NAME}'
+    - '-t'
+    - 'docker.io/${_DOCKERHUB_USER}/api:latest'
     - '-f'
     - './BackEnd/Dockerfile'
     - '.'
     id: 'build-api'
 
   - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'docker.io/${_DOCKERHUB_USER}/api:${TAG_NAME}'
+    args: ['push', '--all-tags', 'docker.io/${_DOCKERHUB_USER}/api']
 
   # Build et push du frontend app
   - name: 'gcr.io/cloud-builders/docker'
@@ -34,15 +38,15 @@ steps:
     - 'build'
     - '-t'
     - 'docker.io/${_DOCKERHUB_USER}/app:${TAG_NAME}'
+    - '-t'
+    - 'docker.io/${_DOCKERHUB_USER}/app:latest'
     - '-f'
     - './FrontEnd/Dockerfile'
     - '.'
     id: 'build-app'
 
   - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'docker.io/${_DOCKERHUB_USER}/app:${TAG_NAME}'
+    args: ['push', '--all-tags', 'docker.io/${_DOCKERHUB_USER}/app']
 
 availableSecrets:
   secretManager:

@@ -1,5 +1,6 @@
 import {
   FolderKanban,
+  Gauge,
   LayoutDashboard,
   ListTodo,
   Plus,
@@ -9,6 +10,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation, type Location } from "react-router";
 
+import { useVersion } from "../../api/queries";
 import { useCurrentUser } from "../../auth/context";
 
 interface NavItem {
@@ -47,6 +49,12 @@ const MAIN_NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   {
+    to: "/admin/overview",
+    label: "Vue d'ensemble",
+    icon: Gauge,
+    isActive: (location) => location.pathname.startsWith("/admin/overview"),
+  },
+  {
     to: "/admin/users",
     label: "Utilisateurs",
     icon: Users,
@@ -77,6 +85,7 @@ function NavEntry({ item }: { item: NavItem }) {
 
 export function Sidebar() {
   const user = useCurrentUser();
+  const version = useVersion();
 
   return (
     <aside className="sidebar" aria-label="Navigation principale">
@@ -104,6 +113,8 @@ export function Sidebar() {
           ))}
         </nav>
       )}
+
+      {version.data && <p className="sidebar__version">Version {version.data}</p>}
     </aside>
   );
 }

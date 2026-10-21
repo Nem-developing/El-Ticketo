@@ -24,6 +24,33 @@ describe("TicketsPage", () => {
     expect(query.getAll("status")).toEqual(["new", "in_progress", "waiting"]);
   });
 
+  it("« Mes demandes » liste les tickets ouverts par l'utilisateur, fermés compris", async () => {
+    const fetchMock = mockFetch(() => jsonResponse([]));
+    renderPage(<TicketsPage />, { path: "/tickets" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Mes demandes" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent("/tickets?view=requested");
+    await screen.findByText("Vous n'avez ouvert aucun ticket dans ce projet.");
+    const query = lastTicketsQuery(fetchMock);
+    expect(query.get("created_by_id")).toBe("2");
+    expect(query.has("assignee_id")).toBe(false);
+    expect(query.has("status")).toBe(false);
+  });
+
+  it("filtre sur la catégorie venue du tableau de bord, jusqu'au retrait du filtre", async () => {
+    const fetchMock = mockFetch(() => jsonResponse([]));
+    renderPage(<TicketsPage />, { path: "/tickets", route: "/tickets?view=all&category=Bug" });
+
+    await screen.findByText("Aucun ticket ici");
+    expect(lastTicketsQuery(fetchMock).get("category")).toBe("Bug");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Retirer le filtre « Catégorie : Bug »" }),
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent("/tickets?view=all");
+  });
+
   it("reporte la saisie dans l'URL après une pause", async () => {
     mockFetch(() => jsonResponse([]));
     renderPage(<TicketsPage />, { path: "/tickets" });
