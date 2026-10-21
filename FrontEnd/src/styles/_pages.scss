@@ -1,0 +1,360 @@
+// Styles propres à une page.
+
+// --- Connexion ------------------------------------------------------------------
+
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+
+.login__card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 380px;
+  padding: 32px;
+}
+
+.login__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  text-align: center;
+
+  h1 {
+    font-size: 22px;
+  }
+}
+
+// --- Tableau de bord ------------------------------------------------------------
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: var(--border-strong);
+    text-decoration: none;
+  }
+
+  @each $status in new, in_progress, waiting, closed {
+    &--#{$status} .stat__dot {
+      background: var(--status-#{$status}-fg);
+    }
+  }
+}
+
+.stat__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stat__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.stat__value {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 20px;
+
+  @media (max-width: 1000px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// --- Graphiques -----------------------------------------------------------------
+
+.chart {
+  margin: 0;
+}
+
+.chart__legend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.chart__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.line-key {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.chart__data {
+  margin-top: 8px;
+  font-size: 13px;
+
+  summary {
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  .table {
+    margin-top: 8px;
+  }
+}
+
+.chart-tooltip {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+}
+
+.chart-tooltip__label {
+  margin-bottom: 4px;
+  color: var(--text-muted);
+}
+
+.chart-tooltip__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+
+  strong {
+    color: var(--text);
+  }
+}
+
+.bars-container {
+  container-type: inline-size;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bars__row {
+  display: grid;
+  // Le libellé prend au plus 45 % de la largeur : la barre reste lisible même sur une carte étroite.
+  grid-template-columns: fit-content(45%) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+// Carte étroite : le libellé passe au-dessus de sa barre plutôt que d'être tronqué.
+@container (max-width: 360px) {
+  .bars__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .bars__label {
+    white-space: normal;
+  }
+}
+
+.bars__label {
+  overflow: hidden;
+  color: var(--text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bars__track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bars__fill {
+  height: 16px;
+  min-width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--series-1);
+}
+
+.bars__value {
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+// --- Détail d'un ticket ---------------------------------------------------------
+
+.ticket-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ticket-header__id {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.ticket-header__title {
+  font-size: 24px;
+  overflow-wrap: anywhere;
+}
+
+.ticket-header__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ticket-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ticket-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 20px;
+
+  @media (max-width: 1000px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ticket-layout__main,
+.ticket-layout__side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 12px;
+  margin: 4px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+
+  dt {
+    color: var(--text-muted);
+  }
+
+  dd {
+    margin: 0;
+    text-align: right;
+  }
+}
+
+// --- Commentaires ---------------------------------------------------------------
+
+.comments {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.comment,
+.comment-form {
+  display: flex;
+  gap: 12px;
+}
+
+.comment__body,
+.comment-form__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.comment__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 14px;
+
+  time {
+    color: var(--text-muted);
+  }
+}
+
+.comment__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.comment__actions {
+  display: flex;
+  gap: 16px;
+}
+
+.comment__edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comment-form {
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+
+  .comments:empty + & {
+    border-top: 0;
+  }
+}

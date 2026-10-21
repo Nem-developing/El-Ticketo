@@ -1,0 +1,73 @@
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
+
+import type { Ticket } from "../api/types";
+import { ALICE, jsonResponse, mockFetch, renderPage } from "../test/utils";
+import { TicketPage } from "./TicketPage";
+
+const TICKET: Ticket = {
+  id: 7,
+  project_id: 1,
+  title: "Imprimante bloquée",
+  description: "Bourrage papier",
+  category: "Support technique",
+  priority: "normal",
+  status: "new",
+  created_by: { id: 1, username: "admin" },
+  assignee: null,
+  created_at: "2026-10-20T08:00:00Z",
+  updated_at: "2026-10-20T08:00:00Z",
+  closed_at: null,
+};
+
+function mockTicketApi() {
+  const patches: unknown[] = [];
+  const fetchMock = mockFetch(async (method, url) => {
+    if (url.pathname === "/api/tickets/7" && method === "PATCH") {
+      const body = JSON.parse(String(fetchMock.mock.lastCall![1]!.body));
+      patches.push(body);
+      return jsonResponse({ ...TICKET, ...body });
+    }
+    if (url.pathname === "/api/tickets/7") return jsonResponse(TICKET);
+    if (url.pathname === "/api/tickets/7/comments") return jsonResponse([]);
+    if (url.pathname === "/api/users") return jsonResponse([ALICE]);
+    return jsonResponse({ detail: "Ticket introuvable." }, 404);
+  });
+  return patches;
+}
+
+describe("TicketPage", () => {
+  it("n'envoie que les champs réellement modifiés", async () => {
+    const patches = mockTicketApi();
+    renderPage(<TicketPage />, { path: "/tickets/:ticketId", route: "/tickets/7" });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Modifier" }));
+    const category = screen.getByLabelText("Catégorie");
+    await userEvent.clear(category);
+    await userEvent.type(category, "Matériel");
+    await userEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    await waitFor(() => expect(patches).toEqual([{ category: "Matériel" }]));
+  });
+
+  it("« Prendre en charge » passe le ticket en cours et me l'assigne", async () => {
+    const patches = mockTicketApi();
+    renderPage(<TicketPage />, { path: "/tickets/:ticketId", route: "/tickets/7" });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Prendre en charge" }));
+
+    await waitFor(() =>
+      expect(patches).toEqual([{ status: "in_progress", assignee_id: ALICE.id }]),
+    );
+  });
+
+  it.each(["/tickets/0", "/tickets/abc", "/tickets/999"])(
+    "%s affiche « Ticket introuvable »",
+    async (route) => {
+      mockFetch(() => jsonResponse({ detail: "Ticket introuvable." }, 404));
+      renderPage(<TicketPage />, { path: "/tickets/:ticketId", route });
+      expect(await screen.findByText("Ticket introuvable")).toBeInTheDocument();
+    },
+  );
+});

@@ -1,0 +1,207 @@
+// Squelette de l'application : barre latérale, barre du haut, contenu.
+
+$mobile: 900px;
+
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.app__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app__content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 32px 48px;
+}
+
+.app__backdrop {
+  display: none;
+}
+
+// --- Barre latérale -------------------------------------------------------------
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 20px 14px;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--sidebar-text-active);
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+.sidebar__cta {
+  width: 100%;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav__section {
+  margin: 0 0 6px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.nav__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--sidebar-text);
+  font-weight: 500;
+
+  &:hover {
+    background: var(--sidebar-hover);
+    color: var(--sidebar-text-active);
+    text-decoration: none;
+  }
+
+  &[aria-current="page"] {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--sidebar-text-active);
+  }
+}
+
+// --- Barre du haut ----------------------------------------------------------------
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 60px;
+  padding: 0 32px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar__menu {
+  display: none;
+}
+
+.topbar__project {
+  width: auto;
+  max-width: 260px;
+  font-weight: 500;
+}
+
+.topbar__project-name {
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.topbar__user {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.topbar__account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-weight: 500;
+
+  &:hover {
+    background: var(--surface-2);
+    text-decoration: none;
+  }
+}
+
+// --- Mobile : la barre latérale devient un tiroir --------------------------------
+
+@media (max-width: $mobile) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: 260px;
+    transform: translateX(-100%);
+    // Fermé, le tiroir est aussi retiré du parcours clavier (après l'animation).
+    visibility: hidden;
+    transition:
+      transform 0.2s ease,
+      visibility 0s linear 0.2s;
+  }
+
+  .app--menu-open {
+    .sidebar {
+      transform: none;
+      visibility: visible;
+      transition: transform 0.2s ease;
+    }
+
+    .app__backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: rgba(0, 0, 0, 0.4);
+    }
+  }
+
+  .topbar {
+    padding: 0 16px;
+  }
+
+  .topbar__menu {
+    display: inline-flex;
+  }
+
+  .topbar__account span {
+    display: none;
+  }
+
+  .app__content {
+    padding: 20px 16px 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+}

@@ -1,0 +1,6 @@
+// Ordre : jetons → base → composants génériques → mise en page → pages (du plus général au plus spécifique).
+@use "tokens";
+@use "base";
+@use "components";
+@use "layout";
+@use "pages";
