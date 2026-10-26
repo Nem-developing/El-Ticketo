@@ -123,6 +123,19 @@ describe("TicketPage", () => {
     expect(posts).toEqual(["/api/tickets/7/comments"]);
   });
 
+  it("« Bloc de code » entoure le code saisi ensuite, à l'endroit du curseur", async () => {
+    mockTicketApi();
+    renderPage(<TicketPage />, { path: "/tickets/:ticketId", route: "/tickets/7" });
+
+    const textarea = await screen.findByLabelText("Nouveau commentaire");
+    await userEvent.type(textarea, "Essayez :");
+    await userEvent.click(screen.getByRole("button", { name: "Bloc de code" }));
+    await userEvent.keyboard("ipconfig /all");
+
+    expect(textarea).toHaveValue("Essayez :\n```\nipconfig /all\n```");
+    expect(textarea).toHaveFocus();
+  });
+
   it("ouvrir le ticket marque ses notifications comme lues", async () => {
     mockTicketApi([
       {

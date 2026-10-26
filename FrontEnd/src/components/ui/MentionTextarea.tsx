@@ -8,6 +8,7 @@ import {
   type Ref,
   type TextareaHTMLAttributes,
 } from "react";
+import { flushSync } from "react-dom";
 
 import { useTickets, useUsers } from "../../api/queries";
 import { useCurrentUser } from "../../auth/context";
@@ -94,13 +95,12 @@ export function MentionTextarea({
   const choose = (suggestion: Suggestion) => {
     if (!trigger || caret === null) return;
     const before = `${value.slice(0, trigger.start)}${suggestion.text} `;
-    onChange(before + value.slice(caret).replace(/^ /, ""));
+    // Le champ contrôlé replace le curseur à la fin : une fois le texte affiché, on le remet
+    // juste après l'insertion.
+    flushSync(() => onChange(before + value.slice(caret).replace(/^ /, "")));
+    textareaRef.current?.setSelectionRange(before.length, before.length);
     setCaret(before.length);
     setActive(0);
-    // Le champ contrôlé replace le curseur à la fin : on le remet après l'insertion.
-    requestAnimationFrame(() =>
-      textareaRef.current?.setSelectionRange(before.length, before.length),
-    );
   };
 
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {

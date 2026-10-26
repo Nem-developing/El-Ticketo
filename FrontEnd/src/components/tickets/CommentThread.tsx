@@ -1,5 +1,6 @@
 import { Code } from "lucide-react";
 import { useRef, useState, type ClipboardEvent, type FormEvent, type KeyboardEvent } from "react";
+import { flushSync } from "react-dom";
 
 import { errorMessage } from "../../api/client";
 import { useCommentMutations, useComments, useTicketEvents } from "../../api/queries";
@@ -202,11 +203,9 @@ export function CommentThread({
     const textarea = textareaRef.current;
     if (!textarea) return;
     const { text, caret } = wrapInCodeBlock(draft, textarea.selectionStart, textarea.selectionEnd);
-    setDraft(text);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.setSelectionRange(caret, caret);
-    });
+    flushSync(() => setDraft(text));
+    textarea.focus();
+    textarea.setSelectionRange(caret, caret);
   };
 
   const confirmDelete = () => {
