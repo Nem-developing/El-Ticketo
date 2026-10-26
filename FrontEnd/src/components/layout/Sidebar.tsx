@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   FolderKanban,
   Gauge,
+  KeyRound,
   LayoutDashboard,
   ListTodo,
   Plus,
@@ -63,6 +64,7 @@ const ADMIN_NAV: NavItem[] = [
   adminItem("overview", "Vue d'ensemble", Gauge),
   adminItem("users", "Utilisateurs", Users),
   adminItem("projects", "Projets", FolderKanban),
+  adminItem("sso", "SSO", KeyRound),
   adminItem("webhooks", "Webhooks", Webhook),
   adminItem("logs", "Journal", ScrollText),
 ];

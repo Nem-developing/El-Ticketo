@@ -55,17 +55,9 @@ class Settings:
     )
     # Origines autorisées en CORS (inutile si le front et l'API partagent le même domaine).
     cors_origins: list[str] = field(default_factory=lambda: _csv_from_env("CORS_ORIGINS"))
-    # Adresse publique de l'application (liens des webhooks). Vide : déduite de chaque requête,
-    # ce qui suffit tant que le proxy transmet le bon schéma (https) et le bon hôte.
+    # Adresse publique de l'application (liens des webhooks, retour du SSO). Vide : déduite de
+    # chaque requête, ce qui suffit tant que le proxy transmet le bon schéma et le bon hôte.
     public_url: str = field(default_factory=lambda: _env("PUBLIC_URL", "").rstrip("/"))
-    # Authentification unique (SSO) par OpenID Connect, active dès que l'émetteur est renseigné.
-    oidc_issuer: str = field(default_factory=lambda: _env("OIDC_ISSUER", "").rstrip("/"))
-    oidc_client_id: str = field(default_factory=lambda: _env("OIDC_CLIENT_ID", ""))
-    oidc_client_secret: str = field(default_factory=lambda: _env("OIDC_CLIENT_SECRET", ""))
-
-    @property
-    def sso_enabled(self) -> bool:
-        return bool(self.oidc_issuer)
 
     def __post_init__(self) -> None:
         # Une configuration invalide doit empêcher le démarrage, avec un message explicite.
@@ -79,5 +71,3 @@ class Settings:
             )
         if not self.admin_password:
             raise ValueError("ADMIN_PASSWORD ne peut pas être vide.")
-        if self.oidc_issuer and not self.oidc_client_id:
-            raise ValueError("OIDC_CLIENT_ID est obligatoire quand OIDC_ISSUER est renseigné.")

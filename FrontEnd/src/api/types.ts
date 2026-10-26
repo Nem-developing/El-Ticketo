@@ -115,6 +115,21 @@ export interface Webhook {
 
 export type WebhookInput = Pick<Webhook, "url" | "events">;
 
+export interface SsoConfig {
+  enabled: boolean;
+  issuer: string;
+  client_id: string;
+  /** Le secret n'est jamais renvoyé : on sait seulement s'il est enregistré. */
+  has_secret: boolean;
+  /** Adresse de retour à déclarer chez le fournisseur d'identité. */
+  redirect_uri: string;
+}
+
+export type SsoConfigInput = Pick<SsoConfig, "enabled" | "issuer" | "client_id"> & {
+  /** null : garder le secret enregistré. */
+  client_secret: string | null;
+};
+
 export interface LoginResponse {
   access_token: string;
   expires_at: string;

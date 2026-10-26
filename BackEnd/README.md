@@ -67,9 +67,6 @@ uv pip compile requirements-dev.in -o requirements-dev.txt --python-version 3.12
 | `LOGIN_LOCKOUT_MINUTES` | `15`        | …de cette durée, par couple adresse IP / identifiant           |
 | `CORS_ORIGINS`          | *(vide)*    | Origines autorisées, séparées par des virgules                 |
 | `PUBLIC_URL`            | *(vide)*    | Adresse publique (`https://tickets.exemple.fr`) ; vide : déduite de la requête |
-| `OIDC_ISSUER`           | *(vide)*    | Émetteur OpenID Connect ; renseigné, il active le SSO           |
-| `OIDC_CLIENT_ID`        | *(vide)*    | Identifiant du client (obligatoire avec `OIDC_ISSUER`)          |
-| `OIDC_CLIENT_SECRET`    | *(vide)*    | Secret du client (vide : client public, PKCE seul)              |
 | `FORWARDED_ALLOW_IPS`   | réseaux privés (image Docker) | Proxys autorisés à transmettre l'IP du client |
 | `ELTICKETO_VERSION`     | `dev`       | Version affichée, fixée dans l'image par `cloudbuild.yaml`     |
 
@@ -97,6 +94,7 @@ message explicite.
 | GET          | `/api/health`                                                       | public                           |
 | POST         | `/api/auth/login` · `/api/auth/logout`                              | public · connecté                |
 | GET          | `/api/auth/sso` · `/api/auth/sso/login` · `/api/auth/sso/callback`  | public                           |
+| GET · PUT    | `/api/sso` (configuration, sans le secret) · POST `/api/sso/test`   | admin                            |
 | GET · PUT    | `/api/auth/me` · `/api/auth/me/password`                            | connecté                         |
 | GET          | `/api/users`                                                        | connecté                         |
 | POST · PATCH | `/api/users` · `/api/users/{id}`                                    | admin                            |

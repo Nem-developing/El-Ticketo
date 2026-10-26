@@ -59,18 +59,16 @@ docker compose down -v
 ## Connexion unique (SSO)
 
 El Ticketo accepte tout fournisseur OpenID Connect : Microsoft Entra ID, Google Workspace,
-Keycloak, Authentik, Okta… Déclarez-y une application web dont l'adresse de retour est
-`https://tickets.exemple.fr/api/auth/sso/callback`, puis renseignez dans `.env` :
+Keycloak, Authentik, Okta… Tout se règle dans **Administration > SSO** : l'adresse de retour à
+déclarer chez le fournisseur y est affichée, puis on saisit l'émetteur, l'identifiant et le secret
+du client. « Tester la connexion » fait un aller-retour complet chez le fournisseur et indique quel
+compte serait utilisé, sans ouvrir de session ; une fois le test réussi, cochez « Proposer
+« Se connecter avec le SSO » » (la connexion par mot de passe reste possible).
 
-```bash
-OIDC_ISSUER=https://login.microsoftonline.com/<id-du-tenant>/v2.0
-OIDC_CLIENT_ID=...
-OIDC_CLIENT_SECRET=...
-PUBLIC_URL=https://tickets.exemple.fr
-```
+> Derrière un proxy TLS, renseignez `PUBLIC_URL` (ex. `https://tickets.exemple.fr`) dans `.env`
+> si l'adresse de retour affichée commence par `http://`.
 
-La page de connexion propose alors « Se connecter avec le SSO » (la connexion par mot de passe
-reste possible). À sa première connexion, une personne :
+À sa première connexion, une personne :
 
 - retrouve le compte qui porte son identifiant (la partie avant le @ de son adresse) : ce compte
   passe au SSO et son mot de passe ne sert plus ; le désactiver chez le fournisseur suffit à

@@ -11,6 +11,7 @@ import { AccountPage } from "./pages/AccountPage";
 import { LogsPage } from "./pages/admin/LogsPage";
 import { OverviewPage } from "./pages/admin/OverviewPage";
 import { ProjectsPage } from "./pages/admin/ProjectsPage";
+import { SsoPage } from "./pages/admin/SsoPage";
 import { UsersPage } from "./pages/admin/UsersPage";
 import { WebhooksPage } from "./pages/admin/WebhooksPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -55,6 +56,7 @@ export function App() {
                       <Route path="overview" element={<OverviewPage />} />
                       <Route path="users" element={<UsersPage />} />
                       <Route path="projects" element={<ProjectsPage />} />
+                      <Route path="sso" element={<SsoPage />} />
                       <Route path="webhooks" element={<WebhooksPage />} />
                       <Route path="logs" element={<LogsPage />} />
                     </Route>

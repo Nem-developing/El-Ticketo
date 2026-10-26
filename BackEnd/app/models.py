@@ -1,8 +1,8 @@
 """Modèle de données.
 
 Volontairement minimal : des utilisateurs (admin ou membre), des projets, des tickets,
-leurs commentaires, pièces jointes et historique, plus le journal d'administration et les
-webhooks.
+leurs commentaires, pièces jointes et historique, plus le journal d'administration, les
+webhooks et la configuration du SSO.
 Toutes les dates sont stockées en UTC.
 """
 
@@ -248,3 +248,16 @@ class Webhook(Base):
     # Événements séparés par des virgules : « ticket.created,user.created ».
     events: Mapped[str] = mapped_column(String(200))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+
+class SsoConfig(Base):
+    """Configuration du SSO (OpenID Connect), saisie par un administrateur : une seule ligne."""
+
+    __tablename__ = "sso_config"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    enabled: Mapped[bool] = mapped_column(default=False)
+    issuer: Mapped[str] = mapped_column(String(500), default="")
+    client_id: Mapped[str] = mapped_column(String(255), default="")
+    # L'API en a besoin à chaque connexion ; il n'est jamais renvoyé au navigateur.
+    client_secret: Mapped[str] = mapped_column(String(500), default="")

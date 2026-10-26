@@ -87,6 +87,27 @@ class SsoStatus(BaseModel):
     enabled: bool
 
 
+class SsoConfigOut(BaseModel):
+    enabled: bool
+    issuer: str
+    client_id: str
+    has_secret: bool
+    redirect_uri: str = Field(description="Adresse de retour à déclarer chez le fournisseur.")
+
+
+class SsoConfigWrite(BaseModel):
+    enabled: bool
+    issuer: Annotated[
+        str, StringConstraints(strip_whitespace=True, max_length=500, pattern=r"^(https?://\S+)?$")
+    ]
+    client_id: Annotated[str, StringConstraints(strip_whitespace=True, max_length=255)]
+    client_secret: Annotated[str, StringConstraints(max_length=500)] | None = None
+
+
+class SsoTestOut(BaseModel):
+    url: str
+
+
 class PasswordChange(BaseModel):
     current_password: Annotated[str, StringConstraints(max_length=256)]
     new_password: Password

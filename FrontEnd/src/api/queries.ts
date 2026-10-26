@@ -16,6 +16,8 @@ import type {
   Overview,
   Project,
   ProjectInput,
+  SsoConfig,
+  SsoConfigInput,
   Stats,
   Ticket,
   TicketCreate,
@@ -38,6 +40,7 @@ const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 export const queryKeys = {
   me: ["me"] as const,
   sso: ["sso"] as const,
+  ssoConfig: ["sso-config"] as const,
   version: ["version"] as const,
   users: ["users"] as const,
   projects: ["projects"] as const,
@@ -146,6 +149,9 @@ export const useSsoEnabled = () =>
     select: (sso) => sso.enabled,
     staleTime: Infinity,
   });
+
+export const useSsoConfig = () =>
+  useQuery({ queryKey: queryKeys.ssoConfig, queryFn: () => api.get<SsoConfig>("/sso") });
 
 /** Version déployée (tag git de la release). */
 export const useVersion = () =>
@@ -296,6 +302,21 @@ export function useWebhookMutations() {
     }),
     remove: useMutation({ mutationFn: (id: number) => api.delete(`/webhooks/${id}`), onSuccess }),
     test: useMutation({ mutationFn: (id: number) => api.post<void>(`/webhooks/${id}/test`) }),
+  };
+}
+
+export function useSsoMutations() {
+  const queryClient = useQueryClient();
+  return {
+    save: useMutation({
+      mutationFn: (data: SsoConfigInput) => api.put<SsoConfig>("/sso", data),
+      onSuccess: (config) => {
+        queryClient.setQueryData(queryKeys.ssoConfig, config);
+        queryClient.invalidateQueries({ queryKey: queryKeys.sso });
+      },
+    }),
+    /** Renvoie l'adresse du fournisseur, que le navigateur doit suivre. */
+    test: useMutation({ mutationFn: () => api.post<{ url: string }>("/sso/test") }),
   };
 }
 

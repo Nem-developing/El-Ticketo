@@ -19,7 +19,7 @@ from typing import Any
 from urllib.parse import quote, urlencode
 
 from app import __version__
-from app.config import Settings
+from app.models import SsoConfig
 
 TIMEOUT_SECONDS = 10
 CLOCK_SKEW_SECONDS = 60
@@ -50,9 +50,9 @@ def _fetch_json(
         raise SsoError("Fournisseur d'identité injoignable ou réponse illisible.") from exc
 
 
-def discover(issuer: str) -> dict[str, Any]:
+def discover(issuer: str, refresh: bool = False) -> dict[str, Any]:
     """Configuration publiée par le fournisseur, gardée en mémoire après le premier succès."""
-    if issuer not in _discovery_cache:
+    if refresh or issuer not in _discovery_cache:
         _discovery_cache[issuer] = _fetch_json(f"{issuer}/.well-known/openid-configuration")
     return _discovery_cache[issuer]
 
@@ -62,11 +62,13 @@ def new_challenge() -> dict[str, str]:
     return {key: secrets.token_urlsafe(32) for key in ("state", "nonce", "verifier")}
 
 
-def authorization_url(settings: Settings, redirect_uri: str, challenge: dict[str, str]) -> str:
+def authorization_url(
+    config: SsoConfig, redirect_uri: str, challenge: dict[str, str], refresh: bool = False
+) -> str:
     digest = hashlib.sha256(challenge["verifier"].encode()).digest()
     params = {
         "response_type": "code",
-        "client_id": settings.oidc_client_id,
+        "client_id": config.client_id,
         "redirect_uri": redirect_uri,
         "scope": "openid profile email",
         "state": challenge["state"],
@@ -74,14 +76,15 @@ def authorization_url(settings: Settings, redirect_uri: str, challenge: dict[str
         "code_challenge": base64.urlsafe_b64encode(digest).rstrip(b"=").decode(),
         "code_challenge_method": "S256",
     }
-    return f"{discover(settings.oidc_issuer)['authorization_endpoint']}?{urlencode(params)}"
+    endpoint = discover(config.issuer, refresh)["authorization_endpoint"]
+    return f"{endpoint}?{urlencode(params)}"
 
 
 def fetch_claims(
-    settings: Settings, redirect_uri: str, code: str, challenge: dict[str, str]
+    config: SsoConfig, redirect_uri: str, code: str, challenge: dict[str, str]
 ) -> dict[str, Any]:
     """Échange le code contre le jeton d'identité et renvoie ses informations, vérifiées."""
-    config = discover(settings.oidc_issuer)
+    provider = discover(config.issuer)
     data = {
         "grant_type": "authorization_code",
         "code": code,
@@ -89,16 +92,16 @@ def fetch_claims(
         "code_verifier": challenge["verifier"],
     }
     headers = {}
-    methods = config.get("token_endpoint_auth_methods_supported", ["client_secret_basic"])
-    if not settings.oidc_client_secret:
-        data["client_id"] = settings.oidc_client_id
+    methods = provider.get("token_endpoint_auth_methods_supported", ["client_secret_basic"])
+    if not config.client_secret:
+        data["client_id"] = config.client_id
     elif "client_secret_basic" in methods:
-        client_id, secret = settings.oidc_client_id, settings.oidc_client_secret
-        credentials = f"{quote(client_id, safe='')}:{quote(secret, safe='')}"
-        headers["Authorization"] = "Basic " + base64.b64encode(credentials.encode()).decode()
+        client_id, secret = quote(config.client_id, safe=""), quote(config.client_secret, safe="")
+        credentials = base64.b64encode(f"{client_id}:{secret}".encode()).decode()
+        headers["Authorization"] = f"Basic {credentials}"
     else:
-        data |= {"client_id": settings.oidc_client_id, "client_secret": settings.oidc_client_secret}
-    tokens = _fetch_json(config["token_endpoint"], data, headers)
+        data |= {"client_id": config.client_id, "client_secret": config.client_secret}
+    tokens = _fetch_json(provider["token_endpoint"], data, headers)
 
     try:
         payload = tokens["id_token"].split(".")[1]
@@ -109,8 +112,8 @@ def fetch_claims(
     audience = claims.get("aud")
     audiences = audience if isinstance(audience, list) else [audience]
     if (
-        claims.get("iss") != config["issuer"]
-        or settings.oidc_client_id not in audiences
+        claims.get("iss") != provider["issuer"]
+        or config.client_id not in audiences
         or claims.get("nonce") != challenge["nonce"]
         or not isinstance(claims.get("exp"), int | float)
         or claims["exp"] < time.time() - CLOCK_SKEW_SECONDS

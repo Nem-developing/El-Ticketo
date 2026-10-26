@@ -209,12 +209,37 @@ textarea.input {
   justify-content: flex-start;
 }
 
-.form-error {
+.form-actions__hint {
+  margin-right: auto;
+}
+
+.form-error,
+.form-success {
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   background: var(--danger-soft);
   color: var(--danger);
   font-size: 14px;
+}
+
+.form-success {
+  background: var(--status-closed-bg);
+  color: var(--status-closed-fg);
+}
+
+// Champ en lecture seule accompagné d'un bouton « Copier ».
+.copy-field {
+  display: flex;
+  gap: 8px;
+}
+
+.help-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-2);
 }
 
 // Catégories en un clic.
