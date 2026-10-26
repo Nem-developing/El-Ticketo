@@ -401,19 +401,19 @@ a.bars__row {
   }
 }
 
-// Une image (description ou commentaire) se lit sans l'ouvrir : aperçu entier, à ses
-// proportions ; un clic l'agrandit.
+// Une image (description ou commentaire) se lit sans l'ouvrir : affichée en grand, à ses
+// proportions, sur toute la largeur disponible ; un clic l'ouvre en plein écran.
 button.attachment__thumb {
   width: auto;
   height: auto;
-  max-width: min(480px, 100%);
+  max-width: 100%;
   cursor: zoom-in;
 
   img {
     width: auto;
     max-width: 100%;
     height: auto;
-    max-height: 320px;
+    max-height: min(640px, 75vh);
     object-fit: contain;
   }
 }
