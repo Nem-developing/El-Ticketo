@@ -60,6 +60,26 @@ docker compose down -v
 > **Mise à jour depuis une version 2.x :** le schéma de la base a changé. L'API refuse de démarrer
 > sur une ancienne base : repartez d'une base vide (`docker compose down -v`).
 
+## Simulation
+
+Pour une démonstration, ou pour voir comment l'application se comporte avec des données « de
+production », `scripts/simulation.sh` remplit l'instance décrite par `.env` (identifiants
+administrateur compris) : 3 projets, des personnes, et des tickets qui ont vécu (prise en charge,
+commentaires, mentions, blocs de code, pièces jointes, fermetures).
+
+```bash
+scripts/simulation.sh --tickets 500 --utilisateurs 20
+```
+
+```bash
+scripts/simulation.sh --tickets 0 --vivre
+```
+
+`--vivre` continue ensuite à faire vivre l'instance, une action toutes les 3 secondes, jusqu'à
+Ctrl + C ; `--aide` détaille les options. Nécessite `curl` et `jq`. Les personnes simulées
+(`camille.martin`, `lucas.bernard`…) reçoivent un nouveau mot de passe à chaque lancement,
+affiché au début : à réserver à une instance de test.
+
 ## Connexion unique (SSO)
 
 El Ticketo accepte tout fournisseur OpenID Connect : Microsoft Entra ID, Google Workspace,

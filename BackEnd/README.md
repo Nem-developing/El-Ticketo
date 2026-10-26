@@ -140,6 +140,4 @@ s'affiche tel quel dans Slack, Mattermost ou Rocket.Chat. Le bouton « Tester »
 
 ## Données de démonstration
 
-```bash
-python scripts/generate_data.py --url http://localhost:8080/api --password <mot de passe admin>
-```
+Voir `scripts/simulation.sh`, à la racine du dépôt (section « Simulation » du README principal).
