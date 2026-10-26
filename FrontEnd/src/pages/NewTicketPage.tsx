@@ -125,7 +125,11 @@ export function NewTicketPage() {
 
         <fieldset className="field">
           <legend className="field__label">Catégorie</legend>
-          <CategoryPicker value={form.category} onChange={(category) => change({ category })} />
+          <CategoryPicker
+            categories={project.categories}
+            value={form.category}
+            onChange={(category) => change({ category })}
+          />
         </fieldset>
 
         <fieldset className="field">

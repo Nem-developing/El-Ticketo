@@ -12,7 +12,7 @@ from pydantic import (
     field_validator,
 )
 
-from app.models import LogLevel, TicketPriority, TicketStatus
+from app.models import DEFAULT_CATEGORIES, LogLevel, TicketPriority, TicketStatus
 from app.security import attachment_url
 
 Username = Annotated[
@@ -116,21 +116,45 @@ class PasswordChange(BaseModel):
 # --- Projets ------------------------------------------------------------------
 
 
+# Une catégorie tient sur une ligne : la liste d'un projet est stockée une par ligne.
+ProjectCategory = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=50, pattern=r"^[^\r\n]+$"),
+]
+Categories = Annotated[list[ProjectCategory], Field(max_length=50)]
+
+
+def _unique(categories: list[str] | None) -> list[str] | None:
+    return None if categories is None else list(dict.fromkeys(categories))
+
+
 class ProjectOut(ORMModel):
     id: int
     name: str
     description: str
+    categories: list[str] = Field(description="Catégories proposées, dans l'ordre d'affichage.")
     created_at: datetime
+
+    @field_validator("categories", mode="before")
+    @classmethod
+    def _split(cls, value: str | list[str]) -> list[str]:
+        return [line for line in value.split("\n") if line] if isinstance(value, str) else value
 
 
 class ProjectCreate(BaseModel):
     name: ProjectName
     description: LongText = ""
+    categories: Categories = list(DEFAULT_CATEGORIES)
+
+    _unique = field_validator("categories")(_unique)
 
 
 class ProjectUpdate(BaseModel):
     name: ProjectName | None = None
     description: LongText | None = None
+    categories: Categories | None = None
+
+    _unique = field_validator("categories")(_unique)
 
 
 # --- Tickets ------------------------------------------------------------------

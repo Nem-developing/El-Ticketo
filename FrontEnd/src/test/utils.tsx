@@ -22,6 +22,7 @@ export const PROJECT: Project = {
   id: 1,
   name: "Support",
   description: "",
+  categories: ["Support technique", "Bug"],
   created_at: "2026-10-01T08:00:00Z",
 };
 

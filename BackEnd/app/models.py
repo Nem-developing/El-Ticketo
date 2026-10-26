@@ -107,12 +107,24 @@ class ApiToken(Base):
     user: Mapped[User] = relationship()
 
 
+# Catégories d'un nouveau projet ; « Autre… » reste toujours proposé pour préciser librement.
+DEFAULT_CATEGORIES = (
+    "Support technique",
+    "Demande d'information",
+    "Problème de compte",
+    "Bug",
+    "Suggestion",
+)
+
+
 class Project(Base):
     __tablename__ = "projects"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
     description: Mapped[str] = mapped_column(Text, default="")
+    # Catégories proposées à l'ouverture d'un ticket, une par ligne, dans l'ordre d'affichage.
+    categories: Mapped[str] = mapped_column(Text, server_default="\n".join(DEFAULT_CATEGORIES))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 

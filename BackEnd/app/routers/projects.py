@@ -19,7 +19,11 @@ def list_projects(db: DbSession, _: CurrentUser):
 
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
 def create_project(payload: ProjectCreate, db: DbSession, admin: AdminUser, request: Request):
-    project = Project(name=payload.name, description=payload.description)
+    project = Project(
+        name=payload.name,
+        description=payload.description,
+        categories="\n".join(payload.categories),
+    )
     db.add(project)
     record(db, f"Projet « {project.name} » créé", actor=admin, request=request)
     commit_or_conflict(db, NAME_TAKEN)
@@ -37,5 +41,9 @@ def update_project(
         project.name = payload.name
     if payload.description is not None:
         project.description = payload.description
+    if payload.categories is not None and "\n".join(payload.categories) != project.categories:
+        project.categories = "\n".join(payload.categories)
+        message = f"Catégories du projet « {project.name} » modifiées"
+        record(db, message, actor=admin, request=request)
     commit_or_conflict(db, NAME_TAKEN)
     return project

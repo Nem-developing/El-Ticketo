@@ -18,14 +18,7 @@ export const PRIORITY_LABELS: Record<TicketPriority, string> = {
   high: "Haute",
 };
 
-/** Catégories proposées en un clic ; "Autre" permet d'en saisir une librement. */
-export const SUGGESTED_CATEGORIES = [
-  "Support technique",
-  "Demande d'information",
-  "Problème de compte",
-  "Bug",
-  "Suggestion",
-];
+/** Toujours proposée en plus des catégories du projet, pour en saisir une librement. */
 export const OTHER_CATEGORY = "Autre";
 
 /** Longueurs maximales acceptées par l'API. */

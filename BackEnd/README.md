@@ -77,7 +77,8 @@ message explicite.
 
 - **Utilisateurs** : `admin` (gère comptes et projets) ou membre (tout le reste), éventuellement
   rattachés au SSO (`sso_subject`, l'identifiant « sub » du fournisseur).
-- **Projets** : un nom et une description.
+- **Projets** : un nom, une description et les catégories proposées à l'ouverture d'un ticket
+  (la catégorie d'un ticket reste un texte libre).
 - **Tickets** : titre, description, catégorie (texte libre), priorité (`low` / `normal` / `high`),
   statut (`new` → `in_progress` → `waiting` → `closed`), assigné optionnel.
 - **Commentaires** : modifiables par leur auteur, supprimables par l'auteur ou un admin.

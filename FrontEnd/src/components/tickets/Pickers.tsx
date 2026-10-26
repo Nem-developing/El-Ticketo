@@ -1,22 +1,19 @@
 import { useState } from "react";
 
 import type { TicketPriority } from "../../api/types";
-import {
-  MAX_LENGTH,
-  OTHER_CATEGORY,
-  PRIORITIES,
-  PRIORITY_LABELS,
-  SUGGESTED_CATEGORIES,
-} from "../../lib/labels";
+import { MAX_LENGTH, OTHER_CATEGORY, PRIORITIES, PRIORITY_LABELS } from "../../lib/labels";
 
 interface CategoryPickerProps {
+  /** Catégories du projet. */
+  categories: string[];
   value: string;
   onChange: (category: string) => void;
 }
 
-/** Catégories courantes en un clic, ou saisie libre via "Autre". */
-export function CategoryPicker({ value, onChange }: CategoryPickerProps) {
-  const [otherMode, setOtherMode] = useState(value !== "" && !SUGGESTED_CATEGORIES.includes(value));
+/** Catégories du projet en un clic, ou saisie libre via "Autre". */
+export function CategoryPicker({ categories, value, onChange }: CategoryPickerProps) {
+  const suggested = categories.filter((category) => category !== OTHER_CATEGORY);
+  const [otherMode, setOtherMode] = useState(value !== "" && !suggested.includes(value));
   const [otherText, setOtherText] = useState(otherMode && value !== OTHER_CATEGORY ? value : "");
 
   const chooseOther = () => {
@@ -27,7 +24,7 @@ export function CategoryPicker({ value, onChange }: CategoryPickerProps) {
   return (
     <div className="category-picker">
       <div className="chips">
-        {SUGGESTED_CATEGORIES.map((category) => (
+        {suggested.map((category) => (
           <button
             key={category}
             type="button"

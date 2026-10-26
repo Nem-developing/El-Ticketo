@@ -20,6 +20,8 @@ export interface Project {
   id: number;
   name: string;
   description: string;
+  /** Catégories proposées à l'ouverture d'un ticket, dans l'ordre d'affichage. */
+  categories: string[];
   created_at: string;
 }
 
@@ -166,7 +168,5 @@ export interface UserCreate {
 
 export type UserUpdate = Partial<Pick<User, "is_admin" | "is_active">> & { password?: string };
 
-export interface ProjectInput {
-  name: string;
-  description: string;
-}
+/** Sans `categories`, un nouveau projet reçoit la liste par défaut. */
+export type ProjectInput = Pick<Project, "name" | "description"> & { categories?: string[] };

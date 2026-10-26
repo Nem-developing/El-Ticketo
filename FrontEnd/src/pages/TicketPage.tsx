@@ -24,14 +24,7 @@ import { useProjectContext } from "../context/project";
 import { useToast } from "../context/toast";
 import { dropFiles } from "../lib/files";
 import { formatDateTime, formatRelative } from "../lib/format";
-import {
-  MAX_LENGTH,
-  PRIORITIES,
-  PRIORITY_LABELS,
-  STATUSES,
-  STATUS_LABELS,
-  SUGGESTED_CATEGORIES,
-} from "../lib/labels";
+import { MAX_LENGTH, PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS } from "../lib/labels";
 import { usePastedFiles } from "../lib/usePastedFiles";
 
 function ContentEditor({
@@ -45,6 +38,8 @@ function ContentEditor({
   onCancel: () => void;
   pending: boolean;
 }) {
+  const { projects } = useProjectContext();
+  const categories = projects.find(({ id }) => id === ticket.project_id)?.categories ?? [];
   const [title, setTitle] = useState(ticket.title);
   const [description, setDescription] = useState(ticket.description);
   const [category, setCategory] = useState(ticket.category);
@@ -84,7 +79,7 @@ function ContentEditor({
           onChange={(event) => setCategory(event.target.value)}
         />
         <datalist id="category-suggestions">
-          {SUGGESTED_CATEGORIES.map((suggestion) => (
+          {categories.map((suggestion) => (
             <option key={suggestion} value={suggestion} />
           ))}
         </datalist>

@@ -10,18 +10,26 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { ErrorState, Loader } from "../../components/ui/States";
 import { useToast } from "../../context/toast";
 import { formatDate } from "../../lib/format";
-import { MAX_LENGTH } from "../../lib/labels";
+import { MAX_LENGTH, OTHER_CATEGORY } from "../../lib/labels";
 
 function ProjectForm({ project, onDone }: { project?: Project; onDone: () => void }) {
   const saveProject = useSaveProject();
   const toast = useToast();
   const [name, setName] = useState(project?.name ?? "");
   const [description, setDescription] = useState(project?.description ?? "");
+  const [categories, setCategories] = useState(project?.categories.join("\n") ?? "");
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    const lines = categories
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    // Nouveau projet sans catégorie saisie : l'API lui donne la liste par défaut.
+    const data =
+      project || lines.length ? { name, description, categories: lines } : { name, description };
     saveProject.mutate(
-      { id: project?.id, data: { name, description } },
+      { id: project?.id, data },
       {
         onSuccess: (saved) => {
           toast.success(project ? "Projet mis à jour." : `Projet « ${saved.name} » créé.`);
@@ -52,6 +60,19 @@ function ProjectForm({ project, onDone }: { project?: Project; onDone: () => voi
           maxLength={MAX_LENGTH.text}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
+        />
+      </Field>
+      <Field
+        label="Catégories"
+        htmlFor="project-categories"
+        hint={`Une par ligne, dans l'ordre d'affichage${project ? "" : " ; vide : la liste par défaut"}. « ${OTHER_CATEGORY}… » reste toujours proposé pour préciser librement.`}
+      >
+        <textarea
+          id="project-categories"
+          className="input"
+          rows={6}
+          value={categories}
+          onChange={(event) => setCategories(event.target.value)}
         />
       </Field>
       <FormError message={saveProject.error ? errorMessage(saveProject.error) : null} />
@@ -98,6 +119,9 @@ export function ProjectsPage() {
                   <th scope="col" className="hide-sm">
                     Description
                   </th>
+                  <th scope="col" className="hide-md">
+                    Catégories
+                  </th>
                   <th scope="col" className="hide-sm">
                     Créé le
                   </th>
@@ -114,6 +138,9 @@ export function ProjectsPage() {
                     </td>
                     <td className="hide-sm">
                       {project.description || <span className="muted">—</span>}
+                    </td>
+                    <td className="hide-md">
+                      {project.categories.join(", ") || <span className="muted">—</span>}
                     </td>
                     <td className="hide-sm">{formatDate(project.created_at)}</td>
                     <td className="table__actions">

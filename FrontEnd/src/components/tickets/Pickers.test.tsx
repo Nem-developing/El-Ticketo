@@ -10,7 +10,7 @@ function CategoryHarness() {
   const [category, setCategory] = useState("");
   return (
     <>
-      <CategoryPicker value={category} onChange={setCategory} />
+      <CategoryPicker categories={["Bug", "Réseau"]} value={category} onChange={setCategory} />
       <output data-testid="value">{category}</output>
     </>
   );
