@@ -56,6 +56,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
+  const loginWithToken = useCallback((sessionToken: string) => {
+    tokenStorage.set(sessionToken);
+    setToken(sessionToken);
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api.post("/auth/logout");
@@ -73,9 +78,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionError: token ? error : null,
       retrySession: () => void refetch(),
       login,
+      loginWithToken,
       logout,
     }),
-    [token, data, isPending, error, refetch, login, logout],
+    [token, data, isPending, error, refetch, login, loginWithToken, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -126,7 +126,19 @@ export function AccountPage() {
         </div>
       </section>
 
-      <PasswordForm />
+      {user.sso ? (
+        <section className="card" aria-labelledby="password-title">
+          <h2 id="password-title" className="card__title">
+            Mot de passe
+          </h2>
+          <p className="muted">
+            Votre compte se connecte par le SSO : son mot de passe se gère chez votre fournisseur
+            d'identité.
+          </p>
+        </section>
+      ) : (
+        <PasswordForm />
+      )}
     </div>
   );
 }

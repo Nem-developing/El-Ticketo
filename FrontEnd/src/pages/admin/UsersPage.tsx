@@ -199,6 +199,11 @@ export function UsersPage() {
                       <td>
                         <strong>{user.username}</strong>
                         {isMe && <span className="muted"> (vous)</span>}
+                        {user.sso && (
+                          <span className="tag user__sso" title="Se connecte par le SSO">
+                            SSO
+                          </span>
+                        )}
                       </td>
                       <td>{user.is_admin ? "Administrateur" : "Membre"}</td>
                       <td>

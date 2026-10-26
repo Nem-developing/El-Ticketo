@@ -51,6 +51,7 @@ class UserSummary(ORMModel):
 class UserOut(UserSummary):
     is_admin: bool
     is_active: bool
+    sso: bool = Field(description="Compte rattaché au SSO (connexion sans mot de passe).")
     created_at: datetime
 
 
@@ -80,6 +81,10 @@ class LoginResponse(BaseModel):
     token_type: Literal["bearer"] = "bearer"
     expires_at: datetime
     user: UserOut
+
+
+class SsoStatus(BaseModel):
+    enabled: bool
 
 
 class PasswordChange(BaseModel):

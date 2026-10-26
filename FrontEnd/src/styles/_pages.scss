@@ -19,6 +19,22 @@
   padding: 32px;
 }
 
+// « ou avec un identifiant », entre deux filets.
+.login__separator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--border);
+  }
+}
+
 .login__brand {
   display: flex;
   flex-direction: column;
@@ -470,4 +486,11 @@ button.attachment__thumb {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
   overflow-wrap: anywhere;
+}
+
+// --- Utilisateurs ---------------------------------------------------------------
+
+.user__sso {
+  margin-left: 8px;
+  font-size: 12px;
 }

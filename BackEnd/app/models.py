@@ -84,6 +84,13 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(default=False)
     is_active: Mapped[bool] = mapped_column(default=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    # Identifiant (« sub ») du compte chez le fournisseur SSO ; un compte rattaché ne se
+    # connecte plus par mot de passe (son empreinte est vide).
+    sso_subject: Mapped[str | None] = mapped_column(String(255), index=True, unique=True)
+
+    @property
+    def sso(self) -> bool:
+        return self.sso_subject is not None
 
 
 class ApiToken(Base):

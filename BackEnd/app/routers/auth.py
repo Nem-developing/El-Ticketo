@@ -1,8 +1,9 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from math import ceil
 
 from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import delete, select
+from sqlalchemy.orm import Session
 
 from app.deps import CurrentToken, CurrentUser, DbSession
 from app.journal import client_ip, record
@@ -45,16 +46,21 @@ def login(payload: LoginRequest, db: DbSession, request: Request):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects.")
     throttle.reset(throttle_key)
     record(db, "Connexion", actor=user, request=request)
+    token, expires_at = open_session(db, user, request)
+    db.commit()
+    return LoginResponse(
+        access_token=token, expires_at=expires_at, user=UserOut.model_validate(user)
+    )
 
+
+def open_session(db: Session, user: User, request: Request) -> tuple[str, datetime]:
+    """Crée une session (à valider avec la transaction) et renvoie son token."""
     now = utcnow()
     db.execute(delete(ApiToken).where(ApiToken.user_id == user.id, ApiToken.expires_at <= now))
     token = generate_token()
     expires_at = now + timedelta(hours=request.app.state.settings.token_ttl_hours)
     db.add(ApiToken(user_id=user.id, token_hash=hash_token(token), expires_at=expires_at))
-    db.commit()
-    return LoginResponse(
-        access_token=token, expires_at=expires_at, user=UserOut.model_validate(user)
-    )
+    return token, expires_at
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

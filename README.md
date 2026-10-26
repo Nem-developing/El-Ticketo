@@ -19,6 +19,7 @@ Ce n'est pas un ITSM et ça ne le deviendra pas : voir la [philosophie du projet
   suppression d'un ticket, à chaque commentaire ou nouveau compte (Slack, Mattermost, n8n…).
 - **Projets** pour séparer plusieurs services ou équipes.
 - **Deux rôles** : membre (gère les tickets) et administrateur (gère aussi les comptes et les projets).
+- **Connexion unique (SSO)** facultative, avec tout fournisseur OpenID Connect.
 
 ## Démarrer avec Docker
 
@@ -54,6 +55,31 @@ docker compose down -v
 >
 > **Mise à jour depuis une version 2.x :** le schéma de la base a changé. L'API refuse de démarrer
 > sur une ancienne base : repartez d'une base vide (`docker compose down -v`).
+
+## Connexion unique (SSO)
+
+El Ticketo accepte tout fournisseur OpenID Connect : Microsoft Entra ID, Google Workspace,
+Keycloak, Authentik, Okta… Déclarez-y une application web dont l'adresse de retour est
+`https://tickets.exemple.fr/api/auth/sso/callback`, puis renseignez dans `.env` :
+
+```bash
+OIDC_ISSUER=https://login.microsoftonline.com/<id-du-tenant>/v2.0
+OIDC_CLIENT_ID=...
+OIDC_CLIENT_SECRET=...
+PUBLIC_URL=https://tickets.exemple.fr
+```
+
+La page de connexion propose alors « Se connecter avec le SSO » (la connexion par mot de passe
+reste possible). À sa première connexion, une personne :
+
+- retrouve le compte qui porte son identifiant (la partie avant le @ de son adresse) : ce compte
+  passe au SSO et son mot de passe ne sert plus ; le désactiver chez le fournisseur suffit à
+  couper l'accès, à l'expiration de la session en cours ;
+- sinon, obtient un compte membre, qu'un administrateur promeut au besoin.
+
+Le compte administrateur initial (`ADMIN_USERNAME`) n'est jamais rattaché : il reste un accès de
+secours par mot de passe. Qui peut se connecter se règle chez le fournisseur (utilisateurs
+affectés à l'application).
 
 ## Lien « Signaler un problème »
 

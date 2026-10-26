@@ -4,6 +4,7 @@ from app.routers import (
     health,
     logs,
     projects,
+    sso,
     stats,
     tickets,
     users,
@@ -13,6 +14,7 @@ from app.routers import (
 ROUTERS = (
     health.router,
     auth.router,
+    sso.router,
     users.router,
     projects.router,
     tickets.router,

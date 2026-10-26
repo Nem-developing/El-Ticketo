@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -54,6 +54,12 @@ def require_admin(user: CurrentUser) -> User:
 
 
 AdminUser = Annotated[User, Depends(require_admin)]
+
+
+def public_url(request: Request, path: str) -> str:
+    """Adresse publique d'une page : PUBLIC_URL, sinon déduite de la requête."""
+    base = request.app.state.settings.public_url or str(request.base_url)
+    return base.rstrip("/") + path
 
 
 def get_or_404[T](db: Session, model: type[T], object_id: int, detail: str) -> T:

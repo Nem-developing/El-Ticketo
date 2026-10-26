@@ -9,6 +9,8 @@ export interface AuthContextValue {
   sessionError: unknown;
   retrySession: () => void;
   login: (username: string, password: string) => Promise<void>;
+  /** Session ouverte ailleurs (retour du SSO). */
+  loginWithToken: (token: string) => void;
   logout: () => Promise<void>;
 }
 

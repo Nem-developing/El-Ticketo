@@ -37,6 +37,7 @@ const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 export const queryKeys = {
   me: ["me"] as const,
+  sso: ["sso"] as const,
   version: ["version"] as const,
   users: ["users"] as const,
   projects: ["projects"] as const,
@@ -136,6 +137,15 @@ export const useLogs = (q: string, limit: number) =>
 
 export const useWebhooks = () =>
   useQuery({ queryKey: queryKeys.webhooks, queryFn: () => api.get<Webhook[]>("/webhooks") });
+
+/** Le SSO est-il proposé sur la page de connexion ? */
+export const useSsoEnabled = () =>
+  useQuery({
+    queryKey: queryKeys.sso,
+    queryFn: () => api.get<{ enabled: boolean }>("/auth/sso"),
+    select: (sso) => sso.enabled,
+    staleTime: Infinity,
+  });
 
 /** Version déployée (tag git de la release). */
 export const useVersion = () =>

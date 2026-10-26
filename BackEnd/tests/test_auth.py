@@ -62,3 +62,8 @@ def test_change_password_keeps_current_session_and_closes_others(client, member)
     assert client.get("/api/auth/me", headers=member).status_code == 200
     assert client.get("/api/auth/me", headers=other_session).status_code == 401
     login(client, "alice", "new-password")
+
+
+def test_sso_is_disabled_by_default(client):
+    assert client.get("/api/auth/sso").json() == {"enabled": False}
+    assert client.get("/api/auth/sso/login", follow_redirects=False).status_code == 404

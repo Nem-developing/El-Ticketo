@@ -21,7 +21,12 @@ def login(client: TestClient, username: str, password: str) -> dict[str, str]:
 
 
 @pytest.fixture
-def client():
+def settings() -> Settings:
+    return Settings(database_url=TEST_DATABASE_URL, admin_password=ADMIN_PASSWORD, cors_origins=[])
+
+
+@pytest.fixture
+def client(settings):
     if not TEST_DATABASE_URL.startswith("sqlite"):
         engine = create_db_engine(TEST_DATABASE_URL)
         Base.metadata.drop_all(engine)
@@ -29,9 +34,6 @@ def client():
             connection.execute(text("DROP TABLE IF EXISTS alembic_version"))
         engine.dispose()
 
-    settings = Settings(
-        database_url=TEST_DATABASE_URL, admin_password=ADMIN_PASSWORD, cors_origins=[]
-    )
     with TestClient(create_app(settings)) as test_client:
         yield test_client
 

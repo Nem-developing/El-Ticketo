@@ -19,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import __version__
-from app.deps import DbSession
+from app.deps import DbSession, public_url
 from app.journal import record
 from app.models import LogLevel, User, Webhook, utcnow
 
@@ -82,8 +82,7 @@ class _Notifier:
         self.db = db
 
     def page_url(self, path: str) -> str:
-        base = self.request.app.state.settings.public_url or str(self.request.base_url)
-        return base.rstrip("/") + path
+        return public_url(self.request, path)
 
     def send(self, event: str, text: str, actor: User | None, **data: Any) -> None:
         hooks = [h for h in self.db.scalars(select(Webhook)) if event in h.events.split(",")]

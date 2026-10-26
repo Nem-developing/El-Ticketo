@@ -11,6 +11,8 @@ export interface UserSummary {
 export interface User extends UserSummary {
   is_admin: boolean;
   is_active: boolean;
+  /** Compte rattaché au SSO : il se connecte sans mot de passe. */
+  sso: boolean;
   created_at: string;
 }
 

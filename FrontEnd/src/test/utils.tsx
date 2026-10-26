@@ -14,6 +14,7 @@ export const ALICE: User = {
   username: "alice",
   is_admin: false,
   is_active: true,
+  sso: false,
   created_at: "2026-10-01T08:00:00Z",
 };
 
@@ -67,6 +68,7 @@ export function renderPage(
     sessionError: null,
     retrySession: vi.fn(),
     login: vi.fn(),
+    loginWithToken: vi.fn(),
     logout: vi.fn(),
     ...auth,
   };

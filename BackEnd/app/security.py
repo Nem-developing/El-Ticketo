@@ -1,4 +1,4 @@
-"""Hachage des mots de passe (scrypt, bibliothèque standard), tokens et liens signés."""
+"""Hachage des mots de passe (scrypt, bibliothèque standard), tokens et données signées."""
 
 import base64
 import hashlib
@@ -53,15 +53,26 @@ def hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+# Clé des liens de fichiers et du cookie de connexion SSO. Elle change à chaque démarrage, ce
+# qui invalide les anciens liens : ils ne servent que quelques minutes à quelques heures.
+_KEY = secrets.token_bytes(32)
+
+
+def sign(data: str) -> str:
+    return f"{data}.{hmac.new(_KEY, data.encode(), hashlib.sha256).hexdigest()}"
+
+
+def unsign(signed: str) -> str | None:
+    """Données signées par `sign`, ou None si la signature est fausse."""
+    data = signed.rpartition(".")[0]
+    return data if hmac.compare_digest(sign(data).encode(), signed.encode()) else None
+
+
 # Une balise <img> ou un lien de téléchargement ne peut pas envoyer le token de session :
 # les fichiers sont servis par des liens signés, que la liste des pièces jointes fournit.
-# La clé change à chaque démarrage, ce qui invalide les anciens liens.
-_LINK_KEY = secrets.token_bytes(32)
-
-
 def _signature(attachment_id: int, expires: int) -> str:
     message = f"{attachment_id}:{expires}".encode()
-    return hmac.new(_LINK_KEY, message, hashlib.sha256).hexdigest()
+    return hmac.new(_KEY, message, hashlib.sha256).hexdigest()
 
 
 def attachment_url(attachment_id: int) -> str:
