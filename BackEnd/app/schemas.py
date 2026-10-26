@@ -3,7 +3,14 @@
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, computed_field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    computed_field,
+    field_validator,
+)
 
 from app.models import LogLevel, TicketPriority, TicketStatus
 from app.security import attachment_url
@@ -252,6 +259,33 @@ class LogEntryOut(ORMModel):
     actor: str | None
     ip: str | None
     message: str
+
+
+# --- Webhooks -----------------------------------------------------------------
+
+WebhookEvent = Literal[
+    "ticket.created", "ticket.updated", "ticket.deleted", "comment.created", "user.created"
+]
+WebhookUrl = Annotated[
+    str, StringConstraints(strip_whitespace=True, max_length=500, pattern=r"^https?://[^\s]+$")
+]
+
+
+class WebhookOut(ORMModel):
+    id: int
+    url: str
+    events: list[WebhookEvent]
+    created_at: datetime
+
+    @field_validator("events", mode="before")
+    @classmethod
+    def _split(cls, value: str | list[str]) -> list[str]:
+        return value.split(",") if isinstance(value, str) else value
+
+
+class WebhookWrite(BaseModel):
+    url: WebhookUrl
+    events: list[WebhookEvent] = Field(min_length=1)
 
 
 # --- Divers -------------------------------------------------------------------

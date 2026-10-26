@@ -1,7 +1,8 @@
 """Modèle de données.
 
 Volontairement minimal : des utilisateurs (admin ou membre), des projets, des tickets,
-leurs commentaires, pièces jointes et historique, plus le journal d'administration.
+leurs commentaires, pièces jointes et historique, plus le journal d'administration et les
+webhooks.
 Toutes les dates sont stockées en UTC.
 """
 
@@ -228,3 +229,15 @@ class LogEntry(Base):
     actor: Mapped[str | None] = mapped_column(String(32))
     ip: Mapped[str | None] = mapped_column(String(45))
     message: Mapped[str] = mapped_column(String(500))
+
+
+class Webhook(Base):
+    """Adresse appelée (POST JSON) à chaque événement choisi, voir app/webhooks.py."""
+
+    __tablename__ = "webhooks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    url: Mapped[str] = mapped_column(String(500))
+    # Événements séparés par des virgules : « ticket.created,user.created ».
+    events: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)

@@ -6,6 +6,7 @@ from app.journal import record
 from app.models import ApiToken, User
 from app.schemas import UserCreate, UserOut, UserUpdate
 from app.security import hash_password
+from app.webhooks import Notifier
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -16,7 +17,9 @@ def list_users(db: DbSession, _: CurrentUser):
 
 
 @router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate, db: DbSession, admin: AdminUser, request: Request):
+def create_user(
+    payload: UserCreate, db: DbSession, admin: AdminUser, request: Request, notifier: Notifier
+):
     user = User(
         username=payload.username,
         password_hash=hash_password(payload.password),
@@ -26,6 +29,8 @@ def create_user(payload: UserCreate, db: DbSession, admin: AdminUser, request: R
     role = "administrateur" if user.is_admin else "membre"
     record(db, f"Compte « {user.username} » créé ({role})", actor=admin, request=request)
     commit_or_conflict(db, "Ce nom d'utilisateur est déjà pris.")
+    text = f"Compte « {user.username} » créé par {admin.username}"
+    notifier.send("user.created", text, admin, user=UserOut.model_validate(user))
     return user
 
 

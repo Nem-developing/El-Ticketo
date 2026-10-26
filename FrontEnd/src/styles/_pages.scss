@@ -463,3 +463,11 @@ button.attachment__thumb {
     margin-right: 8px;
   }
 }
+
+// --- Webhooks -------------------------------------------------------------------
+
+.webhook__url {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}

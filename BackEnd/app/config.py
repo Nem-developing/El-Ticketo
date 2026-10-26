@@ -55,6 +55,9 @@ class Settings:
     )
     # Origines autorisées en CORS (inutile si le front et l'API partagent le même domaine).
     cors_origins: list[str] = field(default_factory=lambda: _csv_from_env("CORS_ORIGINS"))
+    # Adresse publique de l'application (liens des webhooks). Vide : déduite de chaque requête,
+    # ce qui suffit tant que le proxy transmet le bon schéma (https) et le bon hôte.
+    public_url: str = field(default_factory=lambda: _env("PUBLIC_URL", "").rstrip("/"))
 
     def __post_init__(self) -> None:
         # Une configuration invalide doit empêcher le démarrage, avec un message explicite.

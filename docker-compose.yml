@@ -45,6 +45,7 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?définissez ADMIN_PASSWORD dans .env (voir .env.example)}
       TOKEN_TTL_HOURS: ${TOKEN_TTL_HOURS:-168}
+      PUBLIC_URL: ${PUBLIC_URL:-}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.elticketo-api.rule=PathPrefix(`/api`)"

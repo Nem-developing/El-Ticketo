@@ -7,6 +7,7 @@ import {
   ScrollText,
   Ticket,
   Users,
+  Webhook,
   type LucideIcon,
 } from "lucide-react";
 import { Link, useLocation, type Location } from "react-router";
@@ -66,6 +67,12 @@ const ADMIN_NAV: NavItem[] = [
     label: "Projets",
     icon: FolderKanban,
     isActive: (location) => location.pathname.startsWith("/admin/projects"),
+  },
+  {
+    to: "/admin/webhooks",
+    label: "Webhooks",
+    icon: Webhook,
+    isActive: (location) => location.pathname.startsWith("/admin/webhooks"),
   },
   {
     to: "/admin/logs",

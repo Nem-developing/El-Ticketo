@@ -25,6 +25,8 @@ import type {
   User,
   UserCreate,
   UserUpdate,
+  Webhook,
+  WebhookInput,
 } from "./types";
 
 /** Les listes et le tableau de bord se rafraîchissent seuls (tickets créés par les collègues). */
@@ -45,6 +47,7 @@ export const queryKeys = {
   attachments: (ticketId: number) => ["attachments", ticketId] as const,
   overview: ["overview"] as const,
   logs: (q: string) => ["logs", q] as const,
+  webhooks: ["webhooks"] as const,
   stats: (projectId?: number, days?: number) =>
     projectId === undefined ? ["stats"] : (["stats", projectId, days] as const),
 };
@@ -130,6 +133,9 @@ export const useLogs = (q: string, limit: number) =>
     placeholderData: keepPreviousData,
     refetchInterval: AUTO_REFRESH_MS,
   });
+
+export const useWebhooks = () =>
+  useQuery({ queryKey: queryKeys.webhooks, queryFn: () => api.get<Webhook[]>("/webhooks") });
 
 /** Version déployée (tag git de la release). */
 export const useVersion = () =>
@@ -265,6 +271,22 @@ export function useSaveProject() {
         : api.patch<Project>(`/projects/${id}`, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.projects }),
   });
+}
+
+export function useWebhookMutations() {
+  const queryClient = useQueryClient();
+  const onSuccess = () => queryClient.invalidateQueries({ queryKey: queryKeys.webhooks });
+  return {
+    save: useMutation({
+      mutationFn: ({ id, data }: { id?: number; data: WebhookInput }) =>
+        id === undefined
+          ? api.post<Webhook>("/webhooks", data)
+          : api.put<Webhook>(`/webhooks/${id}`, data),
+      onSuccess,
+    }),
+    remove: useMutation({ mutationFn: (id: number) => api.delete(`/webhooks/${id}`), onSuccess }),
+    test: useMutation({ mutationFn: (id: number) => api.post<void>(`/webhooks/${id}/test`) }),
+  };
 }
 
 export function useChangePassword() {

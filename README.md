@@ -15,6 +15,8 @@ Ce n'est pas un ITSM et ça ne le deviendra pas : voir la [philosophie du projet
 - **Vue d'ensemble** (administrateurs) : charge par projet et par personne, délai de résolution.
 - **Journal** (administrateurs) : connexions, comptes, projets, suppressions et erreurs, conservé
   un an.
+- **Webhooks** (administrateurs) : une adresse appelée à la création, la modification ou la
+  suppression d'un ticket, à chaque commentaire ou nouveau compte (Slack, Mattermost, n8n…).
 - **Projets** pour séparer plusieurs services ou équipes.
 - **Deux rôles** : membre (gère les tickets) et administrateur (gère aussi les comptes et les projets).
 

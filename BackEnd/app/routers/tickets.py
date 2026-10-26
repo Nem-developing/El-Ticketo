@@ -16,6 +16,7 @@ from app.schemas import (
     TicketOut,
     TicketUpdate,
 )
+from app.webhooks import Notifier
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
@@ -31,6 +32,22 @@ TRACKED_FIELDS = (
     "assignee_id",
     "project_id",
 )
+FIELD_LABELS = {
+    "title": "titre",
+    "description": "description",
+    "category": "catégorie",
+    "priority": "priorité",
+    "status": "statut",
+    "assignee": "assignation",
+    "project": "projet",
+}
+
+
+def _notify(notifier: Notifier, event: str, text: str, user: User, ticket: Ticket, **data) -> None:
+    """Webhook d'un événement de ticket : le lien vers le ticket complète le texte."""
+    url = notifier.page_url(f"/tickets/{ticket.id}")
+    ticket_out = TicketOut.model_validate(ticket)
+    notifier.send(event, f"{text}\n{url}", user, ticket=ticket_out, url=url, **data)
 
 
 @router.get("", response_model=list[TicketOut])
@@ -75,11 +92,13 @@ def list_tickets(
 
 
 @router.post("", response_model=TicketOut, status_code=status.HTTP_201_CREATED)
-def create_ticket(payload: TicketCreate, db: DbSession, user: CurrentUser):
+def create_ticket(payload: TicketCreate, db: DbSession, user: CurrentUser, notifier: Notifier):
     get_or_404(db, Project, payload.project_id, "Projet introuvable.")
     ticket = Ticket(**payload.model_dump(), created_by_id=user.id)
     db.add(ticket)
     db.commit()
+    text = f"Ticket #{ticket.id} créé par {user.username} : {ticket.title}"
+    _notify(notifier, "ticket.created", text, user, ticket)
     return ticket
 
 
@@ -89,7 +108,9 @@ def get_ticket(ticket_id: int, db: DbSession, _: CurrentUser):
 
 
 @router.patch("/{ticket_id}", response_model=TicketOut)
-def update_ticket(ticket_id: int, payload: TicketUpdate, db: DbSession, user: CurrentUser):
+def update_ticket(
+    ticket_id: int, payload: TicketUpdate, db: DbSession, user: CurrentUser, notifier: Notifier
+):
     """Modifie un ticket : contenu, priorité, statut, assignation ou projet."""
     ticket = get_or_404(db, Ticket, ticket_id, TICKET_NOT_FOUND)
     changes = payload.model_dump(exclude_unset=True)
@@ -116,18 +137,18 @@ def update_ticket(ticket_id: int, payload: TicketUpdate, db: DbSession, user: Cu
         if value is not None:
             setattr(ticket, field, value)
 
+    modified = {}
     for field in TRACKED_FIELDS:
         if (value := getattr(ticket, field)) != before[field]:
-            db.add(
-                TicketEvent(
-                    ticket_id=ticket.id,
-                    actor_id=user.id,
-                    field=field.removesuffix("_id"),
-                    value=_event_value(db, field, value),
-                )
-            )
+            modified[field.removesuffix("_id")] = _event_value(db, field, value)
+    for field, value in modified.items():
+        db.add(TicketEvent(ticket_id=ticket.id, actor_id=user.id, field=field, value=value))
 
     db.commit()
+    if modified:
+        labels = ", ".join(FIELD_LABELS[field] for field in modified)
+        text = f"Ticket #{ticket.id} « {ticket.title} » modifié par {user.username} ({labels})"
+        _notify(notifier, "ticket.updated", text, user, ticket, changes=modified)
     return ticket
 
 
@@ -143,11 +164,16 @@ def _event_value(db: Session, field: str, value) -> str | None:
 
 
 @router.delete("/{ticket_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_ticket(ticket_id: int, db: DbSession, admin: AdminUser, request: Request) -> None:
+def delete_ticket(
+    ticket_id: int, db: DbSession, admin: AdminUser, request: Request, notifier: Notifier
+) -> None:
     ticket = get_or_404(db, Ticket, ticket_id, TICKET_NOT_FOUND)
+    ticket_out = TicketOut.model_validate(ticket)
     db.delete(ticket)
-    record(db, f"Ticket #{ticket.id} « {ticket.title} » supprimé", actor=admin, request=request)
+    message = f"Ticket #{ticket.id} « {ticket.title} » supprimé"
+    record(db, message, actor=admin, request=request)
     db.commit()
+    notifier.send("ticket.deleted", f"{message} par {admin.username}", admin, ticket=ticket_out)
 
 
 @router.get("/{ticket_id}/events", response_model=list[TicketEventOut], tags=["history"])
@@ -189,13 +215,20 @@ def list_comments(ticket_id: int, db: DbSession, _: CurrentUser):
     status_code=status.HTTP_201_CREATED,
     tags=["comments"],
 )
-def add_comment(ticket_id: int, payload: CommentCreate, db: DbSession, user: CurrentUser):
+def add_comment(
+    ticket_id: int, payload: CommentCreate, db: DbSession, user: CurrentUser, notifier: Notifier
+):
     """Ajoute un commentaire ; ses fichiers s'envoient ensuite avec `comment_id`."""
     ticket = get_or_404(db, Ticket, ticket_id, TICKET_NOT_FOUND)
     comment = Comment(ticket_id=ticket.id, author_id=user.id, body=payload.body)
     db.add(comment)
     ticket.updated_at = utcnow()
     db.commit()
+    text = f"{user.username} a commenté le ticket #{ticket.id} « {ticket.title} »"
+    if comment.body:
+        text += f" : {comment.body[:300]}"
+    comment_out = CommentOut.model_validate(comment)
+    _notify(notifier, "comment.created", text, user, ticket, comment=comment_out)
     return comment
 
 

@@ -66,6 +66,7 @@ uv pip compile requirements-dev.in -o requirements-dev.txt --python-version 3.12
 | `LOGIN_MAX_ATTEMPTS`    | `5`         | Tentatives de connexion autorisées par fenêtre…                |
 | `LOGIN_LOCKOUT_MINUTES` | `15`        | …de cette durée, par couple adresse IP / identifiant           |
 | `CORS_ORIGINS`          | *(vide)*    | Origines autorisées, séparées par des virgules                 |
+| `PUBLIC_URL`            | *(vide)*    | Adresse publique (`https://tickets.exemple.fr`) ; vide : déduite de la requête |
 | `FORWARDED_ALLOW_IPS`   | réseaux privés (image Docker) | Proxys autorisés à transmettre l'IP du client |
 | `ELTICKETO_VERSION`     | `dev`       | Version affichée, fixée dans l'image par `cloudbuild.yaml`     |
 
@@ -108,6 +109,30 @@ message explicite.
 | GET          | `/api/stats?project_id=&days=30&tz=Europe/Paris`                    | connecté                         |
 | GET          | `/api/stats/overview` (charge par projet et par personne)           | admin                            |
 | GET          | `/api/logs?q=` (journal)                                            | admin                            |
+| GET · POST   | `/api/webhooks`                                                     | admin                            |
+| PUT · DELETE | `/api/webhooks/{id}` · POST `/api/webhooks/{id}/test`               | admin                            |
+
+## Webhooks
+
+À chaque événement choisi (`ticket.created`, `ticket.updated`, `ticket.deleted`,
+`comment.created`, `user.created`), l'API envoie un `POST` JSON à l'adresse du webhook, après avoir
+répondu (5 s au plus, sans nouvel essai ; un échec est inscrit au journal) :
+
+```json
+{
+  "event": "ticket.updated",
+  "created_at": "2026-10-26T09:12:00+00:00",
+  "actor": "alice",
+  "text": "Ticket #12 « Imprimante HS » modifié par alice (statut)\nhttps://tickets.exemple.fr/tickets/12",
+  "url": "https://tickets.exemple.fr/tickets/12",
+  "ticket": { "id": 12, "title": "Imprimante HS", "status": "closed", "…": "…" },
+  "changes": { "status": "closed" }
+}
+```
+
+Selon l'événement, le corps contient aussi `comment` ou `user` (sans mot de passe). `text`
+s'affiche tel quel dans Slack, Mattermost ou Rocket.Chat. Le bouton « Tester » envoie un
+événement `ping`.
 
 ## Données de démonstration
 

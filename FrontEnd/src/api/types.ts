@@ -101,6 +101,18 @@ export interface LogEntry {
   message: string;
 }
 
+export type WebhookEvent =
+  "ticket.created" | "ticket.updated" | "ticket.deleted" | "comment.created" | "user.created";
+
+export interface Webhook {
+  id: number;
+  url: string;
+  events: WebhookEvent[];
+  created_at: string;
+}
+
+export type WebhookInput = Pick<Webhook, "url" | "events">;
+
 export interface LoginResponse {
   access_token: string;
   expires_at: string;
