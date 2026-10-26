@@ -107,14 +107,9 @@ class ApiToken(Base):
     user: Mapped[User] = relationship()
 
 
-# Catégories d'un nouveau projet ; « Autre… » reste toujours proposé pour préciser librement.
-DEFAULT_CATEGORIES = (
-    "Support technique",
-    "Demande d'information",
-    "Problème de compte",
-    "Bug",
-    "Suggestion",
-)
+# Catégories d'un nouveau projet : la nature de la demande, qui vaut pour tout service.
+# « Autre… » reste toujours proposé pour préciser librement.
+DEFAULT_CATEGORIES = ("Problème", "Demande", "Question", "Suggestion")
 
 
 class Project(Base):

@@ -81,7 +81,7 @@ def test_projects_are_managed_by_admins(client, admin, member):
 def test_projects_have_their_own_categories(client, admin, member, project_id):
     # Le projet créé au premier démarrage, comme un nouveau projet, reprend la liste par défaut.
     initial = client.get("/api/projects", headers=member).json()[0]
-    assert initial["categories"][:2] == ["Support technique", "Demande d'information"]
+    assert initial["categories"] == ["Problème", "Demande", "Question", "Suggestion"]
     created = client.post("/api/projects", json={"name": "Réseau"}, headers=admin).json()
     assert created["categories"] == initial["categories"]
 
