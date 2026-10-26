@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router";
 import type { Ticket } from "../../api/types";
 import { ageInDays, formatDateTime, formatRelative } from "../../lib/format";
 import { STALE_AFTER_DAYS } from "../../lib/labels";
+import { useIsUnread } from "../../lib/seen";
 import { PriorityBadge, StatusBadge } from "../ui/Badges";
 
 function CreatedAt({ ticket }: { ticket: Ticket }) {
@@ -24,6 +25,7 @@ function CreatedAt({ ticket }: { ticket: Ticket }) {
 
 export function TicketTable({ tickets }: { tickets: Ticket[] }) {
   const navigate = useNavigate();
+  const isUnread = useIsUnread();
 
   return (
     <div className="table-wrapper">
@@ -54,6 +56,11 @@ export function TicketTable({ tickets }: { tickets: Ticket[] }) {
                   className="table__title"
                   onClick={(event) => event.stopPropagation()}
                 >
+                  {isUnread(ticket) && (
+                    <span className="unread-dot" title="Modifié depuis votre dernière visite">
+                      <span className="visually-hidden">Nouveau : </span>
+                    </span>
+                  )}
                   {ticket.title}
                 </Link>
                 <span className="table__meta">{ticket.category}</span>

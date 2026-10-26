@@ -833,3 +833,14 @@ textarea.input {
     color: var(--primary-text);
   }
 }
+
+// Ticket modifié depuis la dernière visite (liste des tickets).
+.unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  vertical-align: middle;
+}

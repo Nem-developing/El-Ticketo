@@ -13,7 +13,7 @@ Ce n'est pas un ITSM et ça ne le deviendra pas : voir la [philosophie du projet
 - **Notifications** : une cloche signale quand quelqu'un vous mentionne (`@identifiant`) ou vous
   assigne un ticket ; ouvrir le ticket les marque comme lues.
 - **Mes tickets** (qui me sont assignés), **Mes demandes** (que j'ai ouverts), recherche par mot ou
-  par n°, export CSV.
+  par n°, export CSV. Un point signale les tickets modifiés depuis votre dernière visite.
 - **Tableau de bord** : compteurs par statut, activité quotidienne, répartition par catégorie.
 - **Vue d'ensemble** (administrateurs) : charge par projet et par personne, délai de résolution.
 - **Journal** (administrateurs) : connexions, comptes, projets, suppressions et erreurs, conservé

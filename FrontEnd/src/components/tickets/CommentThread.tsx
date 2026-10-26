@@ -130,8 +130,17 @@ function EventItem({ event }: { event: TicketEvent }) {
 
 const timestamp = (item: { created_at: string }) => new Date(item.created_at).getTime();
 
-/** Commentaires et historique des modifications, dans l'ordre chronologique. */
-export function CommentThread({ ticketId }: { ticketId: number }) {
+/**
+ * Commentaires et historique des modifications, dans l'ordre chronologique.
+ * `onCloseTicket`, quand le ticket est ouvert, propose « Commenter et fermer ».
+ */
+export function CommentThread({
+  ticketId,
+  onCloseTicket,
+}: {
+  ticketId: number;
+  onCloseTicket?: () => void;
+}) {
   const user = useCurrentUser();
   const toast = useToast();
   const comments = useComments(ticketId);
@@ -165,8 +174,7 @@ export function CommentThread({ ticketId }: { ticketId: number }) {
   };
 
   const canSubmit = draft.trim() !== "" || files.length > 0;
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
+  const send = (closeAfter: boolean) => {
     // Ctrl+Entrée passe par requestSubmit(), qui ignore le bouton désactivé.
     if (add.isPending || !canSubmit) return;
     add.mutate(
@@ -176,10 +184,15 @@ export function CommentThread({ ticketId }: { ticketId: number }) {
           clearDraft();
           setFiles([]);
           if (failedUploads) toast.error("Certains fichiers n'ont pas pu être envoyés.");
+          if (closeAfter) onCloseTicket?.();
         },
         onError: (error) => toast.error(errorMessage(error)),
       },
     );
+  };
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    send(false);
   };
 
   const confirmDelete = () => {
@@ -244,6 +257,16 @@ export function CommentThread({ ticketId }: { ticketId: number }) {
             >
               {add.isPending ? "Envoi…" : "Commenter"}
             </button>
+            {onCloseTicket && canSubmit && (
+              <button
+                type="button"
+                className="button"
+                disabled={add.isPending}
+                onClick={() => send(true)}
+              >
+                Commenter et fermer
+              </button>
+            )}
             <FilePicker onFiles={addFiles} />
             <span className="field__hint">
               @ pour mentionner, # pour citer un ticket, Ctrl + Entrée pour envoyer

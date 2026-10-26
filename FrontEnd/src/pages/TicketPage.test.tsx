@@ -110,6 +110,19 @@ describe("TicketPage", () => {
     );
   });
 
+  it("« Commenter et fermer » envoie le commentaire puis ferme le ticket", async () => {
+    const patches = mockTicketApi();
+    renderPage(<TicketPage />, { path: "/tickets/:ticketId", route: "/tickets/7" });
+
+    const textarea = await screen.findByLabelText("Nouveau commentaire");
+    expect(screen.queryByRole("button", { name: "Commenter et fermer" })).not.toBeInTheDocument();
+    await userEvent.type(textarea, "Papier changé.");
+    await userEvent.click(screen.getByRole("button", { name: "Commenter et fermer" }));
+
+    await waitFor(() => expect(patches).toEqual([{ status: "closed" }]));
+    expect(posts).toEqual(["/api/tickets/7/comments"]);
+  });
+
   it("ouvrir le ticket marque ses notifications comme lues", async () => {
     mockTicketApi([
       {

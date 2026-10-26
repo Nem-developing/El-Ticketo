@@ -28,6 +28,7 @@ import { useToast } from "../context/toast";
 import { useDocumentTitle } from "../lib/documentTitle";
 import { dropFiles } from "../lib/files";
 import { formatDateTime, formatRelative } from "../lib/format";
+import { markTicketSeen } from "../lib/seen";
 import { MAX_LENGTH, PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS } from "../lib/labels";
 import { usePastedFiles } from "../lib/usePastedFiles";
 
@@ -122,6 +123,7 @@ function TicketDetails({ ticket }: { ticket: Ticket }) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   useDocumentTitle(`#${ticket.id} ${ticket.title}`);
+  useEffect(() => markTicketSeen(user.id, ticket), [user.id, ticket]);
 
   // Ouvrir le ticket suffit à lire ses notifications (mention, assignation).
   const notifications = useNotifications();
@@ -244,7 +246,10 @@ function TicketDetails({ ticket }: { ticket: Ticket }) {
             <Attachments ticketId={ticket.id} />
           </section>
 
-          <CommentThread ticketId={ticket.id} />
+          <CommentThread
+            ticketId={ticket.id}
+            onCloseTicket={isClosed ? undefined : () => save({ status: "closed" })}
+          />
         </div>
 
         <aside className="ticket-layout__side">
