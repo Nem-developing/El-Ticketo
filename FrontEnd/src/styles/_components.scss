@@ -415,6 +415,16 @@ textarea.input {
     background: var(--surface-2);
     color: var(--text-muted);
   }
+
+  &--warning {
+    background: var(--status-waiting-bg);
+    color: var(--status-waiting-fg);
+  }
+
+  &--error {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
 }
 
 .priority {

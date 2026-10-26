@@ -11,6 +11,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import Settings
+from app.journal import purge
 from app.models import Project, Ticket, User
 from app.security import hash_password
 
@@ -31,6 +32,8 @@ def init_database(
     run_migrations(engine)
     with session_factory() as db:
         _seed_first_run(db, settings)
+        purge(db)
+        db.commit()
 
 
 def wait_for_database(engine: Engine, attempts: int = 30, delay: float = 2.0) -> None:

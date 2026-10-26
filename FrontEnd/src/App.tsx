@@ -8,6 +8,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import { ThemeProvider } from "./context/ThemeProvider";
 import { ToastProvider } from "./context/ToastProvider";
 import { AccountPage } from "./pages/AccountPage";
+import { LogsPage } from "./pages/admin/LogsPage";
 import { OverviewPage } from "./pages/admin/OverviewPage";
 import { ProjectsPage } from "./pages/admin/ProjectsPage";
 import { UsersPage } from "./pages/admin/UsersPage";
@@ -52,6 +53,7 @@ export function App() {
                       <Route path="overview" element={<OverviewPage />} />
                       <Route path="users" element={<UsersPage />} />
                       <Route path="projects" element={<ProjectsPage />} />
+                      <Route path="logs" element={<LogsPage />} />
                     </Route>
                     <Route path="*" element={<NotFoundPage />} />
                   </Route>

@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.deps import AdminUser, CurrentUser, DbSession, get_or_404
+from app.journal import record
 from app.models import Comment, Project, Ticket, TicketEvent, TicketStatus, User, utcnow
 from app.schemas import (
     CommentCreate,
@@ -142,8 +143,10 @@ def _event_value(db: Session, field: str, value) -> str | None:
 
 
 @router.delete("/{ticket_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_ticket(ticket_id: int, db: DbSession, _: AdminUser) -> None:
-    db.delete(get_or_404(db, Ticket, ticket_id, TICKET_NOT_FOUND))
+def delete_ticket(ticket_id: int, db: DbSession, admin: AdminUser, request: Request) -> None:
+    ticket = get_or_404(db, Ticket, ticket_id, TICKET_NOT_FOUND)
+    db.delete(ticket)
+    record(db, f"Ticket #{ticket.id} « {ticket.title} » supprimé", actor=admin, request=request)
     db.commit()
 
 

@@ -1,4 +1,4 @@
-from app.routers import attachments, auth, health, projects, stats, tickets, users
+from app.routers import attachments, auth, health, logs, projects, stats, tickets, users
 
 ROUTERS = (
     health.router,
@@ -8,4 +8,5 @@ ROUTERS = (
     tickets.router,
     attachments.router,
     stats.router,
+    logs.router,
 )

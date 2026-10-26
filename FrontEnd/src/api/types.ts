@@ -92,6 +92,15 @@ export interface Stats {
   timeline: { date: string; created: number; closed: number }[];
 }
 
+export interface LogEntry {
+  id: number;
+  created_at: string;
+  level: "info" | "warning" | "error";
+  actor: string | null;
+  ip: string | null;
+  message: string;
+}
+
 export interface LoginResponse {
   access_token: string;
   expires_at: string;

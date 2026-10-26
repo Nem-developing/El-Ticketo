@@ -13,6 +13,8 @@ Ce n'est pas un ITSM et ça ne le deviendra pas : voir la [philosophie du projet
   par n°, export CSV.
 - **Tableau de bord** : compteurs par statut, activité quotidienne, répartition par catégorie.
 - **Vue d'ensemble** (administrateurs) : charge par projet et par personne, délai de résolution.
+- **Journal** (administrateurs) : connexions, comptes, projets, suppressions et erreurs, conservé
+  un an.
 - **Projets** pour séparer plusieurs services ou équipes.
 - **Deux rôles** : membre (gère les tickets) et administrateur (gère aussi les comptes et les projets).
 

@@ -5,7 +5,8 @@ from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import delete, select
 
 from app.deps import CurrentToken, CurrentUser, DbSession
-from app.models import ApiToken, User, utcnow
+from app.journal import client_ip, record
+from app.models import ApiToken, LogLevel, User, utcnow
 from app.schemas import LoginRequest, LoginResponse, PasswordChange, UserOut
 from app.security import (
     DUMMY_PASSWORD_HASH,
@@ -22,8 +23,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def login(payload: LoginRequest, db: DbSession, request: Request):
     """Ouvre une session et renvoie un token à passer dans `Authorization: Bearer <token>`."""
     username = payload.username.strip().lower()
-    client_ip = request.client.host if request.client else "inconnue"
-    throttle_key = f"{client_ip}|{username}"
+    throttle_key = f"{client_ip(request)}|{username}"
     throttle = request.app.state.login_throttle
 
     if wait := throttle.acquire(throttle_key):
@@ -38,8 +38,13 @@ def login(payload: LoginRequest, db: DbSession, request: Request):
         payload.password, user.password_hash if user else DUMMY_PASSWORD_HASH
     )
     if user is None or not password_ok or not user.is_active:
+        record(
+            db, f"Échec de connexion pour « {username} »", request=request, level=LogLevel.WARNING
+        )
+        db.commit()
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects.")
     throttle.reset(throttle_key)
+    record(db, "Connexion", actor=user, request=request)
 
     now = utcnow()
     db.execute(delete(ApiToken).where(ApiToken.user_id == user.id, ApiToken.expires_at <= now))
@@ -64,11 +69,14 @@ def me(user: CurrentUser):
 
 
 @router.put("/me/password", status_code=status.HTTP_204_NO_CONTENT)
-def change_my_password(payload: PasswordChange, token: CurrentToken, db: DbSession) -> None:
+def change_my_password(
+    payload: PasswordChange, token: CurrentToken, db: DbSession, request: Request
+) -> None:
     """Change son propre mot de passe et ferme ses autres sessions."""
     user = token.user
     if not verify_password(payload.current_password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Mot de passe actuel incorrect.")
     user.password_hash = hash_password(payload.new_password)
+    record(db, "Mot de passe modifié", actor=user, request=request)
     db.execute(delete(ApiToken).where(ApiToken.user_id == user.id, ApiToken.id != token.id))
     db.commit()

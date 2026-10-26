@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   ListTodo,
   Plus,
+  ScrollText,
   Ticket,
   Users,
   type LucideIcon,
@@ -65,6 +66,12 @@ const ADMIN_NAV: NavItem[] = [
     label: "Projets",
     icon: FolderKanban,
     isActive: (location) => location.pathname.startsWith("/admin/projects"),
+  },
+  {
+    to: "/admin/logs",
+    label: "Journal",
+    icon: ScrollText,
+    isActive: (location) => location.pathname.startsWith("/admin/logs"),
   },
 ];
 

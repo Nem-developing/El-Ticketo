@@ -3,16 +3,22 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
 from app import __version__
 from app.bootstrap import init_database
 from app.config import Settings
 from app.database import create_db_engine
+from app.journal import record
+from app.models import LogLevel
 from app.routers import ROUTERS
 from app.throttle import LoginThrottle
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -51,6 +57,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+
+    @app.exception_handler(Exception)
+    def log_server_error(request: Request, exc: Exception) -> JSONResponse:
+        """Erreur inattendue : inscrite au journal, pour que l'admin la voie sans lire les logs
+        du conteneur (la trace complète y reste)."""
+        try:
+            with session_factory() as db:
+                message = f"Erreur interne sur {request.method} {request.url.path} : {exc!r}"
+                record(db, message, request=request, level=LogLevel.ERROR)
+                db.commit()
+        except SQLAlchemyError:
+            logger.exception("Impossible d'inscrire l'erreur au journal.")
+        return JSONResponse({"detail": "Erreur interne du serveur."}, status_code=500)
 
     for router in ROUTERS:
         app.include_router(router, prefix="/api")

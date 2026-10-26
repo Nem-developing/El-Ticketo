@@ -82,6 +82,8 @@ message explicite.
 - **Pièces jointes** : 1 Go au plus, stockées en base par morceaux de 4 Mo, jointes au ticket ou à
   un commentaire ; supprimables par leur auteur ou un admin.
 - **Historique** : chaque modification d'un ticket (statut, assignation, projet…) est inscrite.
+- **Journal** : connexions (réussies ou non), comptes, projets, tickets supprimés et erreurs
+  internes, avec l'auteur et son adresse IP ; les lignes de plus d'un an sont purgées.
 
 ## Routes principales
 
@@ -105,6 +107,7 @@ message explicite.
 | DELETE       | `/api/attachments/{id}`                                             | auteur ou admin                  |
 | GET          | `/api/stats?project_id=&days=30&tz=Europe/Paris`                    | connecté                         |
 | GET          | `/api/stats/overview` (charge par projet et par personne)           | admin                            |
+| GET          | `/api/logs?q=` (journal)                                            | admin                            |
 
 ## Données de démonstration
 

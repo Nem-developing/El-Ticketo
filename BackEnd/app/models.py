@@ -1,7 +1,8 @@
 """Modèle de données.
 
 Volontairement minimal : des utilisateurs (admin ou membre), des projets, des tickets,
-leurs commentaires, pièces jointes et historique. Toutes les dates sont stockées en UTC.
+leurs commentaires, pièces jointes et historique, plus le journal d'administration.
+Toutes les dates sont stockées en UTC.
 """
 
 import enum
@@ -55,6 +56,12 @@ class TicketPriority(enum.StrEnum):
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
+
+
+class LogLevel(enum.StrEnum):
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
 
 
 def _str_enum(enum_cls: type[enum.StrEnum]) -> Enum:
@@ -207,3 +214,17 @@ class AttachmentChunk(Base):
     )
     position: Mapped[int] = mapped_column(primary_key=True)
     data: Mapped[bytes] = mapped_column(ChunkData)
+
+
+class LogEntry(Base):
+    """Ligne du journal d'administration (connexions, comptes, suppressions, erreurs…)."""
+
+    __tablename__ = "log_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+    level: Mapped[LogLevel] = mapped_column(_str_enum(LogLevel), default=LogLevel.INFO)
+    # Identifiant de l'utilisateur à l'origine de l'événement, tel qu'il était à ce moment.
+    actor: Mapped[str | None] = mapped_column(String(32))
+    ip: Mapped[str | None] = mapped_column(String(45))
+    message: Mapped[str] = mapped_column(String(500))

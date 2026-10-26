@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, computed_field
 
-from app.models import TicketPriority, TicketStatus
+from app.models import LogLevel, TicketPriority, TicketStatus
 from app.security import attachment_url
 
 Username = Annotated[
@@ -240,6 +240,18 @@ class OverviewOut(BaseModel):
     projects: list[ProjectOverview]
     people: list[PersonOverview]
     oldest_open: list[TicketOut]
+
+
+# --- Journal ------------------------------------------------------------------
+
+
+class LogEntryOut(ORMModel):
+    id: int
+    created_at: datetime
+    level: LogLevel
+    actor: str | None
+    ip: str | None
+    message: str
 
 
 # --- Divers -------------------------------------------------------------------

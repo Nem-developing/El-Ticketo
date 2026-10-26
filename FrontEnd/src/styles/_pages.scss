@@ -453,3 +453,13 @@ button.attachment__thumb {
     border-top: 0;
   }
 }
+
+// --- Journal --------------------------------------------------------------------
+
+.log__message {
+  overflow-wrap: anywhere;
+
+  .badge {
+    margin-right: 8px;
+  }
+}

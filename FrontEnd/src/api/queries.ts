@@ -12,6 +12,7 @@ import { api } from "./client";
 import type {
   Attachment,
   Comment,
+  LogEntry,
   Overview,
   Project,
   ProjectInput,
@@ -43,6 +44,7 @@ export const queryKeys = {
   events: (ticketId: number) => ["events", ticketId] as const,
   attachments: (ticketId: number) => ["attachments", ticketId] as const,
   overview: ["overview"] as const,
+  logs: (q: string) => ["logs", q] as const,
   stats: (projectId?: number, days?: number) =>
     projectId === undefined ? ["stats"] : (["stats", projectId, days] as const),
 };
@@ -118,6 +120,14 @@ export const useOverview = () =>
   useQuery({
     queryKey: queryKeys.overview,
     queryFn: () => api.get<Overview>("/stats/overview"),
+    refetchInterval: AUTO_REFRESH_MS,
+  });
+
+export const useLogs = (q: string, limit: number) =>
+  useQuery({
+    queryKey: queryKeys.logs(q),
+    queryFn: () => api.get<LogEntry[]>("/logs", { q, limit }),
+    placeholderData: keepPreviousData,
     refetchInterval: AUTO_REFRESH_MS,
   });
 
