@@ -41,6 +41,7 @@ export interface Comment {
   ticket_id: number;
   author: UserSummary;
   body: string;
+  attachments: Attachment[];
   created_at: string;
   updated_at: string | null;
 }

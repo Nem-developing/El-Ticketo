@@ -12,7 +12,7 @@ from sqlalchemy import insert, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.deps import CurrentUser, DbSession, get_or_404
-from app.models import Attachment, AttachmentChunk, Ticket
+from app.models import Attachment, AttachmentChunk, Comment, Ticket
 from app.schemas import AttachmentOut
 from app.security import is_valid_attachment_link
 
@@ -36,9 +36,10 @@ TicketDep = Annotated[Ticket, Depends(get_ticket)]
 
 @router.get("/tickets/{ticket_id}/attachments", response_model=list[AttachmentOut])
 def list_attachments(_: CurrentUser, ticket: TicketDep, db: DbSession):
+    """Fichiers joints au ticket lui-même ; ceux des commentaires sont listés avec eux."""
     query = (
         select(Attachment)
-        .where(Attachment.ticket_id == ticket.id)
+        .where(Attachment.ticket_id == ticket.id, Attachment.comment_id.is_(None))
         .order_by(Attachment.created_at, Attachment.id)
     )
     return db.scalars(query).all()
@@ -55,8 +56,12 @@ async def upload_attachment(
     name: Annotated[str, Query(min_length=1, max_length=200, description="Nom du fichier")],
     request: Request,
     db: DbSession,
+    comment_id: Annotated[
+        int | None, Query(description="Commentaire auquel joindre le fichier")
+    ] = None,
 ):
-    """Joint le fichier envoyé dans le corps de la requête (1 Go au plus).
+    """Joint le fichier envoyé dans le corps de la requête (1 Go au plus) au ticket, ou à l'un
+    de ses commentaires (par son auteur).
 
     Le fichier est enregistré morceau par morceau, sans jamais passer en entier en mémoire, et
     dans une seule transaction : un envoi interrompu ou refusé ne laisse rien en base.
@@ -64,10 +69,20 @@ async def upload_attachment(
     # Taille annoncée par le navigateur : inutile de recevoir 1 Go pour le refuser ensuite.
     if int(request.headers.get("content-length") or 0) > MAX_SIZE:
         raise _too_large()
+    if comment_id is not None:
+        comment = await run_in_threadpool(db.get, Comment, comment_id)
+        if comment is None or comment.ticket_id != ticket.id:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Commentaire introuvable.")
+        if comment.author_id != user.id:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                detail="Seul l'auteur peut joindre un fichier à ce commentaire.",
+            )
 
     content_type = request.headers.get("content-type", "").split(";")[0].strip().lower()
     attachment = Attachment(
         ticket_id=ticket.id,
+        comment_id=comment_id,
         uploaded_by_id=user.id,
         filename=name.strip() or "fichier",
         content_type=content_type[:100] or "application/octet-stream",

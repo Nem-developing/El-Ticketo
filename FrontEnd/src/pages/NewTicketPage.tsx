@@ -1,4 +1,3 @@
-import { FileText, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
@@ -9,11 +8,11 @@ import { CategoryPicker, PriorityPicker } from "../components/tickets/Pickers";
 import { Field, FormError } from "../components/ui/Field";
 import { FilePicker } from "../components/ui/FilePicker";
 import { PageHeader } from "../components/ui/PageHeader";
+import { PendingFiles } from "../components/ui/PendingFiles";
 import { useCurrentProject, useProjectContext } from "../context/project";
 import { useToast } from "../context/toast";
 import { celebrate } from "../lib/confetti";
 import { dropFiles, MAX_FILE_SIZE } from "../lib/files";
-import { formatSize } from "../lib/format";
 import { MAX_LENGTH, PRIORITIES } from "../lib/labels";
 import { usePastedFiles } from "../lib/usePastedFiles";
 import { useDraft } from "../lib/useDraft";
@@ -139,29 +138,10 @@ export function NewTicketPage() {
           optional
           hint="Vous pouvez aussi glisser des fichiers ou coller une capture (Ctrl + V). 1 Go maximum."
         >
-          {files.length > 0 && (
-            <ul className="attachments">
-              {files.map((file, index) => (
-                <li key={index} className="attachment">
-                  <span className="attachment__thumb" aria-hidden="true">
-                    <FileText size={20} />
-                  </span>
-                  <div className="attachment__info">
-                    <span>{file.name}</span>
-                    <span className="muted">{formatSize(file.size)}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="icon-button"
-                    aria-label={`Retirer ${file.name}`}
-                    onClick={() => setFiles(files.filter((other) => other !== file))}
-                  >
-                    <X size={16} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <PendingFiles
+            files={files}
+            onRemove={(file) => setFiles(files.filter((other) => other !== file))}
+          />
           <div>
             <FilePicker onFiles={addFiles} />
           </div>

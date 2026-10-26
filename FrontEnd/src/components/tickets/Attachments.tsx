@@ -11,11 +11,22 @@ import { formatDateTime, formatRelative, formatSize } from "../../lib/format";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { Modal } from "../ui/Modal";
 
-/** Pièces jointes d'un ticket : aperçu des images, téléchargement de tous les fichiers. */
+/** Pièces jointes du ticket lui-même (celles des commentaires sont affichées avec eux). */
 export function Attachments({ ticketId }: { ticketId: number }) {
+  const attachments = useAttachments(ticketId);
+  return <AttachmentList ticketId={ticketId} attachments={attachments.data ?? []} />;
+}
+
+/** Aperçu des images, téléchargement de tous les fichiers. */
+export function AttachmentList({
+  ticketId,
+  attachments,
+}: {
+  ticketId: number;
+  attachments: Attachment[];
+}) {
   const user = useCurrentUser();
   const toast = useToast();
-  const attachments = useAttachments(ticketId);
   const { remove } = useAttachmentMutations(ticketId);
   const [zoomed, setZoomed] = useState<Attachment | null>(null);
   const [toDelete, setToDelete] = useState<Attachment | null>(null);
@@ -28,11 +39,11 @@ export function Attachments({ ticketId }: { ticketId: number }) {
     });
   };
 
-  if (!attachments.data?.length) return null;
+  if (attachments.length === 0) return null;
   return (
     <>
       <ul className="attachments" aria-label="Pièces jointes">
-        {attachments.data.map((attachment) => (
+        {attachments.map((attachment) => (
           <li key={attachment.id} className="attachment">
             {IMAGE_TYPES.includes(attachment.content_type) ? (
               <button

@@ -47,6 +47,12 @@ export const queryKeys = {
     projectId === undefined ? ["stats"] : (["stats", projectId, days] as const),
 };
 
+/** Envoie les fichiers un par un ; un fichier refusé n'empêche pas les autres. */
+async function uploadAll(path: string, files: File[], query?: object): Promise<number> {
+  const uploads = await Promise.allSettled(files.map((file) => api.upload(path, file, query)));
+  return uploads.filter((upload) => upload.status === "rejected").length;
+}
+
 /** Après une écriture sur un ticket, les listes et les stats doivent être rafraîchies. */
 function invalidateTicketViews(queryClient: QueryClient) {
   queryClient.invalidateQueries({ queryKey: queryKeys.tickets() });
@@ -132,10 +138,7 @@ export function useCreateTicket() {
   return useMutation({
     mutationFn: async ({ data, files }: { data: TicketCreate; files: File[] }) => {
       const ticket = await api.post<Ticket>("/tickets", data);
-      const uploads = await Promise.allSettled(
-        files.map((file) => api.upload(`/tickets/${ticket.id}/attachments`, file)),
-      );
-      const failedUploads = uploads.filter((upload) => upload.status === "rejected").length;
+      const failedUploads = await uploadAll(`/tickets/${ticket.id}/attachments`, files);
       return { ticket, failedUploads };
     },
     onSuccess: ({ ticket }) => {
@@ -179,8 +182,15 @@ export function useCommentMutations(ticketId: number) {
   };
 
   return {
+    /** Le commentaire est créé, puis ses fichiers y sont joints. */
     add: useMutation({
-      mutationFn: (body: string) => api.post<Comment>(base, { body }),
+      mutationFn: async ({ body, files }: { body: string; files: File[] }) => {
+        const comment = await api.post<Comment>(base, { body });
+        const failedUploads = await uploadAll(`/tickets/${ticketId}/attachments`, files, {
+          comment_id: comment.id,
+        });
+        return { comment, failedUploads };
+      },
       onSuccess,
     }),
     edit: useMutation({
@@ -199,8 +209,11 @@ export function useCommentMutations(ticketId: number) {
 
 export function useAttachmentMutations(ticketId: number) {
   const queryClient = useQueryClient();
-  const onSuccess = () =>
+  // Le fichier supprimé peut appartenir au ticket ou à l'un de ses commentaires.
+  const onSuccess = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.attachments(ticketId) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.comments(ticketId) });
+  };
 
   return {
     upload: useMutation({

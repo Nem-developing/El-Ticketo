@@ -52,10 +52,23 @@ def run_migrations(engine: Engine) -> None:
     """Amène le schéma à la dernière version (migrations Alembic de app/migrations)."""
     config = Config()
     config.set_main_option("script_location", str(MIGRATIONS_DIR))
-    with engine.begin() as connection:
-        config.attributes["connection"] = connection
-        _reject_unmanaged_schema(connection)
-        command.upgrade(config, "head")
+    with engine.connect() as connection:
+        # SQLite recrée une table pour la modifier : supprimer l'ancienne effacerait, par cascade,
+        # les lignes qui la référencent. Les clés étrangères sont donc suspendues le temps des
+        # migrations (le PRAGMA n'a d'effet qu'en dehors d'une transaction).
+        sqlite = connection.dialect.name == "sqlite"
+        if sqlite:
+            connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+            connection.commit()
+        try:
+            with connection.begin():
+                config.attributes["connection"] = connection
+                _reject_unmanaged_schema(connection)
+                command.upgrade(config, "head")
+        finally:
+            if sqlite:
+                connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+                connection.commit()
 
 
 def _reject_unmanaged_schema(connection: Connection) -> None:

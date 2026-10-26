@@ -1,6 +1,11 @@
 import { useEffect, useRef } from "react";
 
-/** Reçoit les fichiers collés dans la page (une capture d'écran, par exemple). */
+import { pastedFiles } from "./files";
+
+/**
+ * Reçoit les fichiers collés dans la page (une capture d'écran, par exemple), sauf ceux déjà
+ * pris en charge par un champ (le commentaire en cours).
+ */
 export function usePastedFiles(onFiles: (files: File[]) => void) {
   const callbackRef = useRef(onFiles);
   useEffect(() => {
@@ -9,11 +14,9 @@ export function usePastedFiles(onFiles: (files: File[]) => void) {
 
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
-      const files = [...(event.clipboardData?.files ?? [])];
-      // Dans un champ, un texte reste un texte : Excel ou Word y joignent aussi une image.
-      const inField = event.target instanceof Element && event.target.closest("input, textarea");
-      const hasText = event.clipboardData?.types.includes("text/plain");
-      if (files.length === 0 || (inField && hasText)) return;
+      if (event.defaultPrevented) return;
+      const files = pastedFiles(event);
+      if (files.length === 0) return;
       event.preventDefault();
       callbackRef.current(files);
     };

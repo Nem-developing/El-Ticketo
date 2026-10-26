@@ -79,8 +79,8 @@ message explicite.
 - **Tickets** : titre, description, catégorie (texte libre), priorité (`low` / `normal` / `high`),
   statut (`new` → `in_progress` → `waiting` → `closed`), assigné optionnel.
 - **Commentaires** : modifiables par leur auteur, supprimables par l'auteur ou un admin.
-- **Pièces jointes** : 1 Go au plus, stockées en base par morceaux de 4 Mo ; supprimables par leur
-  auteur ou un admin.
+- **Pièces jointes** : 1 Go au plus, stockées en base par morceaux de 4 Mo, jointes au ticket ou à
+  un commentaire ; supprimables par leur auteur ou un admin.
 - **Historique** : chaque modification d'un ticket (statut, assignation, projet…) est inscrite.
 
 ## Routes principales
@@ -100,7 +100,7 @@ message explicite.
 | GET · POST   | `/api/tickets/{id}/comments`                                        | connecté                         |
 | PATCH/DELETE | `/api/tickets/{id}/comments/{comment_id}`                           | auteur (ou admin pour supprimer) |
 | GET          | `/api/tickets/{id}/events` (historique)                             | connecté                         |
-| GET · POST   | `/api/tickets/{id}/attachments` (POST : fichier brut, `?name=`)     | connecté                         |
+| GET · POST   | `/api/tickets/{id}/attachments` (POST : fichier brut, `?name=&comment_id=`) | connecté                 |
 | GET          | `/api/attachments/{id}/file` (lien signé fourni par la liste)       | lien signé                       |
 | DELETE       | `/api/attachments/{id}`                                             | auteur ou admin                  |
 | GET          | `/api/stats?project_id=&days=30&tz=Europe/Paris`                    | connecté                         |

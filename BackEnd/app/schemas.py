@@ -141,22 +141,6 @@ class TicketUpdate(BaseModel):
     project_id: int | None = None
 
 
-# --- Commentaires -------------------------------------------------------------
-
-
-class CommentOut(ORMModel):
-    id: int
-    ticket_id: int
-    author: UserSummary
-    body: str
-    created_at: datetime
-    updated_at: datetime | None
-
-
-class CommentWrite(BaseModel):
-    body: CommentBody
-
-
 # --- Historique et pièces jointes ---------------------------------------------
 
 
@@ -181,6 +165,28 @@ class AttachmentOut(ORMModel):
     @property
     def url(self) -> str:
         return attachment_url(self.id)
+
+
+# --- Commentaires -------------------------------------------------------------
+
+
+class CommentOut(ORMModel):
+    id: int
+    ticket_id: int
+    author: UserSummary
+    body: str
+    attachments: list[AttachmentOut]
+    created_at: datetime
+    updated_at: datetime | None
+
+
+class CommentCreate(BaseModel):
+    # Peut rester vide quand le commentaire n'est qu'une capture d'écran, jointe ensuite.
+    body: LongText = ""
+
+
+class CommentWrite(BaseModel):
+    body: CommentBody
 
 
 # --- Statistiques -------------------------------------------------------------

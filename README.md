@@ -6,7 +6,8 @@ on commente, on le ferme. Pas de workflow à configurer, pas de formulaire à ra
 Ce n'est pas un ITSM et ça ne le deviendra pas : voir la [philosophie du projet](PHILOSOPHIE.md).
 
 - **Tickets** : titre, description, catégorie, priorité, statut (Nouveau → En cours → En attente → Fermé), assigné.
-- **Pièces jointes** : collez une capture d'écran (Ctrl + V) ou glissez un fichier, 1 Go au plus.
+- **Pièces jointes** : collez une capture d'écran (Ctrl + V) ou glissez un fichier, 1 Go au plus,
+  sur le ticket ou dans un commentaire.
 - **Commentaires** et **historique** automatique des modifications (statut, assignation, projet…).
 - **Mes tickets** (qui me sont assignés), **Mes demandes** (que j'ai ouverts), recherche par mot ou
   par n°, export CSV.

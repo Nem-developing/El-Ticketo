@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
@@ -21,9 +21,16 @@ const TICKET: Ticket = {
   closed_at: null,
 };
 
+const posts: string[] = [];
+
 function mockTicketApi() {
+  posts.length = 0;
   const patches: unknown[] = [];
   const fetchMock = mockFetch(async (method, url) => {
+    if (method === "POST") {
+      posts.push(url.pathname + url.search);
+      return jsonResponse({ id: 5 }, 201);
+    }
     if (url.pathname === "/api/tickets/7" && method === "PATCH") {
       const body = JSON.parse(String(fetchMock.mock.lastCall![1]!.body));
       patches.push(body);
@@ -79,6 +86,26 @@ describe("TicketPage", () => {
 
     await waitFor(() =>
       expect(patches).toEqual([{ status: "in_progress", assignee_id: ALICE.id }]),
+    );
+  });
+
+  it("joint au commentaire, et non au ticket, la capture collée dans le commentaire", async () => {
+    mockTicketApi();
+    renderPage(<TicketPage />, { path: "/tickets/:ticketId", route: "/tickets/7" });
+
+    const textarea = await screen.findByLabelText("Nouveau commentaire");
+    const capture = new File(["png"], "capture.png", { type: "image/png" });
+    fireEvent.paste(textarea, { clipboardData: { files: [capture], types: ["Files"] } });
+    expect(await screen.findByText("capture.png")).toBeInTheDocument();
+    expect(posts).toEqual([]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Commenter" }));
+
+    await waitFor(() =>
+      expect(posts).toEqual([
+        "/api/tickets/7/comments",
+        "/api/tickets/7/attachments?comment_id=5&name=capture.png",
+      ]),
     );
   });
 

@@ -7,10 +7,18 @@ from app.models import Attachment, AttachmentChunk
 from app.routers import attachments
 
 
-def upload(client, ticket_id, headers, data=b"contenu", name="note.txt", content_type="text/plain"):
+def upload(
+    client,
+    ticket_id,
+    headers,
+    data=b"contenu",
+    name="note.txt",
+    content_type="text/plain",
+    comment_id=None,
+):
     return client.post(
         f"/api/tickets/{ticket_id}/attachments",
-        params={"name": name},
+        params={"name": name} | ({"comment_id": comment_id} if comment_id else {}),
         content=data,
         headers={**headers, "Content-Type": content_type},
     )
@@ -104,4 +112,25 @@ def test_deleting_a_ticket_deletes_its_attachments(client, admin, make_ticket):
     ticket = make_ticket()
     upload(client, ticket["id"], admin)
     client.delete(f"/api/tickets/{ticket['id']}", headers=admin)
+    assert count_rows(client, Attachment) == count_rows(client, AttachmentChunk) == 0
+
+
+def test_comment_attachments(client, admin, member, make_ticket):
+    ticket, other = make_ticket(), make_ticket()
+    comments = f"/api/tickets/{ticket['id']}/comments"
+    # Une capture seule, sans texte, fait un commentaire.
+    comment = client.post(comments, json={"body": ""}, headers=member).json()
+
+    created = upload(
+        client, ticket["id"], member, b"\x89PNG", "capture.png", "image/png", comment["id"]
+    )
+    assert created.status_code == 201
+    assert upload(client, ticket["id"], admin, comment_id=comment["id"]).status_code == 403
+    assert upload(client, other["id"], member, comment_id=comment["id"]).status_code == 404
+
+    listed = client.get(comments, headers=admin).json()
+    assert [a["filename"] for a in listed[0]["attachments"]] == ["capture.png"]
+    assert client.get(f"/api/tickets/{ticket['id']}/attachments", headers=admin).json() == []
+
+    client.delete(f"{comments}/{comment['id']}", headers=member)
     assert count_rows(client, Attachment) == count_rows(client, AttachmentChunk) == 0

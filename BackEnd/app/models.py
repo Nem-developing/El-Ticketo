@@ -148,6 +148,12 @@ class Comment(Base):
 
     ticket: Mapped[Ticket] = relationship(back_populates="comments")
     author: Mapped[User] = relationship(lazy="joined")
+    attachments: Mapped[list["Attachment"]] = relationship(
+        lazy="selectin",
+        order_by="Attachment.id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class TicketEvent(Base):
@@ -167,12 +173,16 @@ class TicketEvent(Base):
 
 
 class Attachment(Base):
-    """Fichier joint à un ticket ; son contenu est stocké en base, en morceaux."""
+    """Fichier joint à un ticket, ou à l'un de ses commentaires ; son contenu est stocké en base,
+    en morceaux."""
 
     __tablename__ = "attachments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id", ondelete="CASCADE"), index=True)
+    comment_id: Mapped[int | None] = mapped_column(
+        ForeignKey("comments.id", ondelete="CASCADE"), index=True
+    )
     uploaded_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     filename: Mapped[str] = mapped_column(String(200))
     content_type: Mapped[str] = mapped_column(String(100))

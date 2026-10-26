@@ -350,6 +350,17 @@ a.bars__row {
   .field & {
     margin: 0 0 8px;
   }
+
+  .comment__body &,
+  .comment-form__body & {
+    margin: 4px 0;
+  }
+}
+
+// Dans un commentaire, la capture d'écran se lit sans l'ouvrir.
+.comment button.attachment__thumb {
+  width: 200px;
+  height: 140px;
 }
 
 .attachment {

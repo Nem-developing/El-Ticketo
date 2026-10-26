@@ -148,7 +148,6 @@ def test_comments_lifecycle(client, admin, member, make_ticket):
     ticket = make_ticket()
     base = f"/api/tickets/{ticket['id']}/comments"
 
-    assert client.post(base, json={"body": "   "}, headers=member).status_code == 422
     created = client.post(base, json={"body": "Je regarde ça"}, headers=member)
     assert created.status_code == 201
     comment = created.json()
@@ -156,6 +155,7 @@ def test_comments_lifecycle(client, admin, member, make_ticket):
     assert comment["updated_at"] is None
 
     url = f"{base}/{comment['id']}"
+    assert client.patch(url, json={"body": "   "}, headers=member).status_code == 422
     assert client.patch(url, json={"body": "Piraté"}, headers=admin).status_code == 403
     edited = client.patch(url, json={"body": "C'est réglé"}, headers=member)
     assert edited.json()["body"] == "C'est réglé"

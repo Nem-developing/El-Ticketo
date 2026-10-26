@@ -1,17 +1,21 @@
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useState, type ClipboardEvent, type FormEvent, type KeyboardEvent } from "react";
 
 import { errorMessage } from "../../api/client";
 import { useCommentMutations, useComments, useTicketEvents } from "../../api/queries";
 import type { Comment, TicketEvent } from "../../api/types";
 import { useCurrentUser } from "../../auth/context";
 import { useToast } from "../../context/toast";
+import { dropFiles, MAX_FILE_SIZE, pastedFiles } from "../../lib/files";
 import { formatDateTime, formatRelative } from "../../lib/format";
 import { describeEvent, MAX_LENGTH } from "../../lib/labels";
 import { useDraft } from "../../lib/useDraft";
 import { Avatar } from "../ui/Avatar";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { FilePicker } from "../ui/FilePicker";
 import { Linkify } from "../ui/Linkify";
+import { PendingFiles } from "../ui/PendingFiles";
 import { ErrorState, Loader } from "../ui/States";
+import { AttachmentList } from "./Attachments";
 
 /** Ctrl/⌘ + Entrée envoie le formulaire courant. */
 function submitOnModEnter(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -63,9 +67,11 @@ function CommentItem({
         </div>
 
         {draft === null ? (
-          <p className="prose">
-            <Linkify text={comment.body} />
-          </p>
+          comment.body && (
+            <p className="prose">
+              <Linkify text={comment.body} />
+            </p>
+          )
         ) : (
           <form onSubmit={save} className="comment__edit">
             <textarea
@@ -88,6 +94,8 @@ function CommentItem({
             </div>
           </form>
         )}
+
+        <AttachmentList ticketId={ticketId} attachments={comment.attachments} />
 
         {draft === null && (isAuthor || user.is_admin) && (
           <div className="comment__actions">
@@ -129,6 +137,7 @@ export function CommentThread({ ticketId }: { ticketId: number }) {
   const events = useTicketEvents(ticketId);
   const { add, remove } = useCommentMutations(ticketId);
   const [draft, setDraft, clearDraft] = useDraft(`comment.${ticketId}`, "");
+  const [files, setFiles] = useState<File[]>([]);
   const [toDelete, setToDelete] = useState<Comment | null>(null);
 
   const timeline = [
@@ -140,14 +149,36 @@ export function CommentThread({ ticketId }: { ticketId: number }) {
     ...(events.data ?? []).map((event) => ({ comment: undefined, event, at: timestamp(event) })),
   ].sort((a, b) => a.at - b.at);
 
+  // Fichiers collés, glissés ou choisis ici : ils sont joints au commentaire, pas au ticket.
+  const addFiles = (added: File[]) => {
+    const tooLarge = added.find((file) => file.size > MAX_FILE_SIZE);
+    if (tooLarge) toast.error(`« ${tooLarge.name} » dépasse 1 Go.`);
+    setFiles((current) => [...current, ...added.filter((file) => file.size <= MAX_FILE_SIZE)]);
+  };
+
+  const pasteFiles = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = pastedFiles(event);
+    if (pasted.length === 0) return;
+    event.preventDefault();
+    addFiles(pasted);
+  };
+
+  const canSubmit = draft.trim() !== "" || files.length > 0;
   const submit = (event: FormEvent) => {
     event.preventDefault();
     // Ctrl+Entrée passe par requestSubmit(), qui ignore le bouton désactivé.
-    if (add.isPending || !draft.trim()) return;
-    add.mutate(draft.trim(), {
-      onSuccess: clearDraft,
-      onError: (error) => toast.error(errorMessage(error)),
-    });
+    if (add.isPending || !canSubmit) return;
+    add.mutate(
+      { body: draft.trim(), files },
+      {
+        onSuccess: ({ failedUploads }) => {
+          clearDraft();
+          setFiles([]);
+          if (failedUploads) toast.error("Certains fichiers n'ont pas pu être envoyés.");
+        },
+        onError: (error) => toast.error(errorMessage(error)),
+      },
+    );
   };
 
   const confirmDelete = () => {
@@ -186,7 +217,7 @@ export function CommentThread({ ticketId }: { ticketId: number }) {
         </ul>
       )}
 
-      <form className="comment-form" onSubmit={submit}>
+      <form className="comment-form" onSubmit={submit} {...dropFiles(addFiles)}>
         <Avatar name={user.username} />
         <div className="comment-form__body">
           <textarea
@@ -198,15 +229,21 @@ export function CommentThread({ ticketId }: { ticketId: number }) {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={submitOnModEnter}
+            onPaste={pasteFiles}
+          />
+          <PendingFiles
+            files={files}
+            onRemove={(file) => setFiles(files.filter((other) => other !== file))}
           />
           <div className="form-actions form-actions--start">
             <button
               type="submit"
               className="button button--primary"
-              disabled={add.isPending || !draft.trim()}
+              disabled={add.isPending || !canSubmit}
             >
-              Commenter
+              {add.isPending ? "Envoi…" : "Commenter"}
             </button>
+            <FilePicker onFiles={addFiles} />
             <span className="field__hint">Ctrl + Entrée pour envoyer</span>
           </div>
         </div>

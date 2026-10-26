@@ -110,8 +110,8 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>("PUT", path, { body }),
   patch: <T>(path: string, body?: unknown) => request<T>("PATCH", path, { body }),
   delete: <T = void>(path: string) => request<T>("DELETE", path),
-  upload: <T>(path: string, file: File) =>
-    request<T>("POST", path, { body: file, query: { name: file.name } }),
+  upload: <T>(path: string, file: File, query?: object) =>
+    request<T>("POST", path, { body: file, query: { ...query, name: file.name } }),
 };
 
 export function errorMessage(error: unknown): string {

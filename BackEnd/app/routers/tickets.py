@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.deps import AdminUser, CurrentUser, DbSession, get_or_404
 from app.models import Comment, Project, Ticket, TicketEvent, TicketStatus, User, utcnow
 from app.schemas import (
+    CommentCreate,
     CommentOut,
     CommentWrite,
     TicketCreate,
@@ -185,7 +186,8 @@ def list_comments(ticket_id: int, db: DbSession, _: CurrentUser):
     status_code=status.HTTP_201_CREATED,
     tags=["comments"],
 )
-def add_comment(ticket_id: int, payload: CommentWrite, db: DbSession, user: CurrentUser):
+def add_comment(ticket_id: int, payload: CommentCreate, db: DbSession, user: CurrentUser):
+    """Ajoute un commentaire ; ses fichiers s'envoient ensuite avec `comment_id`."""
     ticket = get_or_404(db, Ticket, ticket_id, TICKET_NOT_FOUND)
     comment = Comment(ticket_id=ticket.id, author_id=user.id, body=payload.body)
     db.add(comment)
