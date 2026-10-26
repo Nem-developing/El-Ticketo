@@ -14,11 +14,10 @@ $mobile: 900px;
   min-width: 0;
 }
 
+// Pleine largeur : sur un grand écran, les tableaux profitent de toute la place.
 .app__content {
   width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 28px 32px 48px;
+  padding: 24px 24px 48px;
 }
 
 .app__backdrop {
@@ -112,7 +111,7 @@ $mobile: 900px;
   align-items: center;
   gap: 12px;
   height: 60px;
-  padding: 0 32px;
+  padding: 0 24px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
