@@ -14,6 +14,7 @@ def test_mentions_are_found_in_plain_text():
     text = "@Alice, vu avec @jean.dupont. Écrire à bob@exemple.fr ou (@chloe-b) ; @alice."
     assert mentioned(text) == {"alice", "jean.dupont", "chloe-b"}
     assert mentioned("rien à signaler @") == set()
+    assert mentioned("```java\n@Override\n``` et `@bob`, mais @carla") == {"carla"}
 
 
 def test_mentions_notify_once_until_read(client, admin, member, make_ticket):

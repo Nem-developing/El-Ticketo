@@ -50,6 +50,17 @@
   --chart-grid: #e8ebef;
   --chart-axis: #c3c9d1;
 
+  // Blocs de code (coloration syntaxique).
+  --code-bg: #f6f8fa;
+  --code-keyword: #cf222e;
+  --code-string: #0a3069;
+  --code-comment: #6e7781;
+  --code-number: #0550ae;
+  --code-title: #8250df;
+  --code-type: #953800;
+  --code-added: #116329;
+  --code-removed: #82071e;
+
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
   --shadow-md: 0 8px 24px rgba(16, 24, 40, 0.12);
 }
@@ -101,6 +112,16 @@
   --chart-grid: #262a30;
   --chart-axis: #3a4049;
 
+  --code-bg: #12151a;
+  --code-keyword: #ff7b72;
+  --code-string: #a5d6ff;
+  --code-comment: #8b949e;
+  --code-number: #79c0ff;
+  --code-title: #d2a8ff;
+  --code-type: #ffa657;
+  --code-added: #7ee787;
+  --code-removed: #ffa198;
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
@@ -111,6 +132,7 @@
   --radius: 10px;
   --radius-lg: 14px;
   --font: "Rubik Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --sidebar-width: 240px;
 }
 

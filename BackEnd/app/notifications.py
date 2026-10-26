@@ -11,11 +11,13 @@ from app.models import Notification, NotificationKind, Ticket, User, utcnow
 
 # « @alice » ou « @jean.dupont », mais ni une adresse e-mail ni le point qui finit la phrase.
 MENTION = re.compile(r"(?<![\w.@-])@([a-z0-9._-]*[a-z0-9_-])", re.IGNORECASE)
+# Le code (bloc ``` ou `en ligne`) s'affiche tel quel : « @Override » n'y mentionne personne.
+CODE = re.compile(r"```.*?```|`[^`\n]+`", re.DOTALL)
 RETENTION = timedelta(days=180)
 
 
 def mentioned(text: str) -> set[str]:
-    return {name.lower() for name in MENTION.findall(text)}
+    return {name.lower() for name in MENTION.findall(CODE.sub(" ", text))}
 
 
 def notify_mentions(

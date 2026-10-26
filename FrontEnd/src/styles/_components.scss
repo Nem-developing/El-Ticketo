@@ -844,3 +844,85 @@ textarea.input {
   background: var(--primary);
   vertical-align: middle;
 }
+
+// --- Blocs de code (```) et coloration syntaxique (classes de highlight.js) -------
+
+.code-block {
+  margin: 6px 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--code-bg);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-wrap: normal;
+
+  code {
+    padding: 0;
+    background: none;
+    font-size: inherit;
+  }
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-meta .hljs-keyword,
+.hljs-doctag {
+  color: var(--code-keyword);
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-meta .hljs-string {
+  color: var(--code-string);
+}
+
+.hljs-comment,
+.hljs-quote,
+.hljs-meta {
+  color: var(--code-comment);
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+  color: var(--code-number);
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-name {
+  color: var(--code-title);
+}
+
+.hljs-built_in,
+.hljs-type,
+.hljs-symbol,
+.hljs-tag {
+  color: var(--code-type);
+}
+
+.hljs-addition {
+  color: var(--code-added);
+}
+
+.hljs-deletion {
+  color: var(--code-removed);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 600;
+}

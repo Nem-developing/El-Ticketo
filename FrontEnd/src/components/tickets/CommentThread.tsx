@@ -1,10 +1,12 @@
-import { useState, type ClipboardEvent, type FormEvent, type KeyboardEvent } from "react";
+import { Code } from "lucide-react";
+import { useRef, useState, type ClipboardEvent, type FormEvent, type KeyboardEvent } from "react";
 
 import { errorMessage } from "../../api/client";
 import { useCommentMutations, useComments, useTicketEvents } from "../../api/queries";
 import type { Comment, TicketEvent } from "../../api/types";
 import { useCurrentUser } from "../../auth/context";
 import { useToast } from "../../context/toast";
+import { wrapInCodeBlock } from "../../lib/codeBlock";
 import { dropFiles, MAX_FILE_SIZE, pastedFiles } from "../../lib/files";
 import { formatDateTime, formatRelative } from "../../lib/format";
 import { describeEvent, MAX_LENGTH } from "../../lib/labels";
@@ -13,8 +15,8 @@ import { Avatar } from "../ui/Avatar";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { FilePicker } from "../ui/FilePicker";
 import { MentionTextarea } from "../ui/MentionTextarea";
-import { RichText } from "../ui/RichText";
 import { PendingFiles } from "../ui/PendingFiles";
+import { RichText } from "../ui/RichText";
 import { ErrorState, Loader } from "../ui/States";
 import { AttachmentList } from "./Attachments";
 
@@ -69,9 +71,9 @@ function CommentItem({
 
         {draft === null ? (
           comment.body && (
-            <p className="prose">
+            <div className="prose">
               <RichText text={comment.body} />
-            </p>
+            </div>
           )
         ) : (
           <form onSubmit={save} className="comment__edit">
@@ -148,6 +150,7 @@ export function CommentThread({
   const { add, remove } = useCommentMutations(ticketId);
   const [draft, setDraft, clearDraft] = useDraft(`comment.${ticketId}`, "");
   const [files, setFiles] = useState<File[]>([]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [toDelete, setToDelete] = useState<Comment | null>(null);
 
   const timeline = [
@@ -195,6 +198,17 @@ export function CommentThread({
     send(false);
   };
 
+  const insertCodeBlock = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const { text, caret } = wrapInCodeBlock(draft, textarea.selectionStart, textarea.selectionEnd);
+    setDraft(text);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(caret, caret);
+    });
+  };
+
   const confirmDelete = () => {
     if (!toDelete) return;
     remove.mutate(toDelete.id, {
@@ -235,6 +249,7 @@ export function CommentThread({
         <Avatar name={user.username} />
         <div className="comment-form__body">
           <MentionTextarea
+            ref={textareaRef}
             className="input"
             aria-label="Nouveau commentaire"
             placeholder="Ajouter un commentaire…"
@@ -268,6 +283,15 @@ export function CommentThread({
               </button>
             )}
             <FilePicker onFiles={addFiles} />
+            <button
+              type="button"
+              className="link-button"
+              title="Entoure la sélection de ``` : le code s'affiche tel quel, en couleur"
+              onClick={insertCodeBlock}
+            >
+              <Code size={14} aria-hidden="true" />
+              Bloc de code
+            </button>
             <span className="field__hint">
               @ pour mentionner, # pour citer un ticket, Ctrl + Entrée pour envoyer
             </span>

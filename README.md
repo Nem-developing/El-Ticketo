@@ -9,7 +9,8 @@ Ce n'est pas un ITSM et ça ne le deviendra pas : voir la [philosophie du projet
 - **Pièces jointes** : collez une capture d'écran (Ctrl + V) ou glissez un fichier, 1 Go au plus,
   sur le ticket ou dans un commentaire.
 - **Commentaires** et **historique** automatique des modifications (statut, assignation, projet…).
-  `@` propose les personnes à mentionner, `#` les tickets à citer (`#42` devient un lien).
+  `@` propose les personnes à mentionner, `#` les tickets à citer (`#42` devient un lien), et les
+  blocs de code (entre ```` ``` ````, ou bouton « Bloc de code ») s'affichent en couleur.
 - **Notifications** : une cloche signale quand quelqu'un vous mentionne (`@identifiant`) ou vous
   assigne un ticket ; ouvrir le ticket les marque comme lues.
 - **Mes tickets** (qui me sont assignés), **Mes demandes** (que j'ai ouverts), recherche par mot ou

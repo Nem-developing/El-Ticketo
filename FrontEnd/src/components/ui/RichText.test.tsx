@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { ALICE, jsonResponse, mockFetch, renderPage } from "../../test/utils";
@@ -39,6 +39,20 @@ describe("RichText", () => {
 
     expect(screen.getByRole("link", { name: "#42" })).toHaveAttribute("href", "/tickets/42");
     expect(screen.getAllByRole("link")).toHaveLength(1);
+  });
+
+  it("affiche les blocs de code tels quels, puis en couleur", async () => {
+    renderText("Avant\n```python\nprint('@bob #42')\n```\nAprès `x = 1` et ```ls -l```");
+
+    const blocks = document.querySelectorAll("pre.code-block");
+    expect([...blocks].map((block) => block.textContent)).toEqual(["print('@bob #42')", "ls -l"]);
+    expect(screen.getByText("x = 1").tagName).toBe("CODE");
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(document.querySelector(".mention")).toBeNull();
+    // Le premier bloc annonce son langage : il est coloré une fois le module chargé.
+    await waitFor(() => expect(blocks[0].querySelector(".hljs-built_in")).not.toBeNull());
+    expect(blocks[0].textContent).toBe("print('@bob #42')");
+    expect(screen.getByTestId("text")).toHaveTextContent(/^Avant.*Après x = 1 et ls -l$/);
   });
 
   it("met en évidence les @identifiant des personnes existantes", async () => {

@@ -1,9 +1,11 @@
 import {
   useId,
+  useImperativeHandle,
   useRef,
   useState,
   type KeyboardEvent,
   type ReactNode,
+  type Ref,
   type TextareaHTMLAttributes,
 } from "react";
 
@@ -16,6 +18,7 @@ type MentionTextareaProps = Omit<
 > & {
   value: string;
   onChange: (value: string) => void;
+  ref?: Ref<HTMLTextAreaElement>;
 };
 
 interface Suggestion {
@@ -34,11 +37,13 @@ export function MentionTextarea({
   onChange,
   onKeyDown,
   onBlur,
+  ref,
   ...props
 }: MentionTextareaProps) {
   const me = useCurrentUser();
   const listId = useId();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useImperativeHandle(ref, () => textareaRef.current!, []);
   // Position du curseur ; null quand le champ n'a pas le focus (la liste se ferme).
   const [caret, setCaret] = useState<number | null>(null);
   const [active, setActive] = useState(0);

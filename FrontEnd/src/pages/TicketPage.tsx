@@ -28,8 +28,8 @@ import { useToast } from "../context/toast";
 import { useDocumentTitle } from "../lib/documentTitle";
 import { dropFiles } from "../lib/files";
 import { formatDateTime, formatRelative } from "../lib/format";
-import { markTicketSeen } from "../lib/seen";
 import { MAX_LENGTH, PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS } from "../lib/labels";
+import { markTicketSeen } from "../lib/seen";
 import { usePastedFiles } from "../lib/usePastedFiles";
 
 function ContentEditor({
@@ -235,9 +235,9 @@ function TicketDetails({ ticket }: { ticket: Ticket }) {
                   </div>
                 </header>
                 {ticket.description ? (
-                  <p className="prose">
+                  <div className="prose">
                     <RichText text={ticket.description} />
-                  </p>
+                  </div>
                 ) : (
                   <p className="muted">Pas de description.</p>
                 )}
