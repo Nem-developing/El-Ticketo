@@ -784,3 +784,52 @@ textarea.input {
     animation: none;
   }
 }
+
+// --- Mentions et suggestions (@ personne, # ticket) ------------------------------
+
+.mention {
+  padding: 0 3px;
+  border-radius: 4px;
+  background: var(--primary-soft);
+  color: var(--primary-text);
+  font-weight: 500;
+
+  &--me {
+    background: var(--highlight-bg);
+    color: var(--highlight-fg);
+  }
+}
+
+.mention-textarea {
+  position: relative;
+}
+
+.mention-textarea__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 15;
+  width: min(360px, 100%);
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  list-style: none;
+}
+
+.mention-textarea__option {
+  overflow: hidden;
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: var(--text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &[aria-selected="true"] {
+    background: var(--primary-soft);
+    color: var(--primary-text);
+  }
+}

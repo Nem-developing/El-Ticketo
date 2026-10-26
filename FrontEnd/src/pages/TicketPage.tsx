@@ -20,7 +20,8 @@ import { PriorityBadge, StatusBadge } from "../components/ui/Badges";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { Field } from "../components/ui/Field";
 import { FilePicker } from "../components/ui/FilePicker";
-import { Linkify } from "../components/ui/Linkify";
+import { MentionTextarea } from "../components/ui/MentionTextarea";
+import { RichText } from "../components/ui/RichText";
 import { EmptyState, ErrorState, Loader } from "../components/ui/States";
 import { useProjectContext } from "../context/project";
 import { useToast } from "../context/toast";
@@ -88,13 +89,13 @@ function ContentEditor({
         </datalist>
       </Field>
       <Field label="Description" htmlFor="edit-description" optional>
-        <textarea
+        <MentionTextarea
           id="edit-description"
           className="input"
           rows={6}
           maxLength={MAX_LENGTH.text}
           value={description}
-          onChange={(event) => setDescription(event.target.value)}
+          onChange={setDescription}
         />
       </Field>
       <div className="form-actions">
@@ -233,7 +234,7 @@ function TicketDetails({ ticket }: { ticket: Ticket }) {
                 </header>
                 {ticket.description ? (
                   <p className="prose">
-                    <Linkify text={ticket.description} />
+                    <RichText text={ticket.description} />
                   </p>
                 ) : (
                   <p className="muted">Pas de description.</p>

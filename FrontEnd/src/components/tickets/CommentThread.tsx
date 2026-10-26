@@ -12,7 +12,8 @@ import { useDraft } from "../../lib/useDraft";
 import { Avatar } from "../ui/Avatar";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { FilePicker } from "../ui/FilePicker";
-import { Linkify } from "../ui/Linkify";
+import { MentionTextarea } from "../ui/MentionTextarea";
+import { RichText } from "../ui/RichText";
 import { PendingFiles } from "../ui/PendingFiles";
 import { ErrorState, Loader } from "../ui/States";
 import { AttachmentList } from "./Attachments";
@@ -69,19 +70,19 @@ function CommentItem({
         {draft === null ? (
           comment.body && (
             <p className="prose">
-              <Linkify text={comment.body} />
+              <RichText text={comment.body} />
             </p>
           )
         ) : (
           <form onSubmit={save} className="comment__edit">
-            <textarea
+            <MentionTextarea
               className="input"
               aria-label="Modifier le commentaire"
               value={draft}
               rows={3}
               maxLength={MAX_LENGTH.text}
               autoFocus
-              onChange={(event) => setDraft(event.target.value)}
+              onChange={setDraft}
               onKeyDown={submitOnModEnter}
             />
             <div className="form-actions form-actions--start">
@@ -220,14 +221,14 @@ export function CommentThread({ ticketId }: { ticketId: number }) {
       <form className="comment-form" onSubmit={submit} {...dropFiles(addFiles)}>
         <Avatar name={user.username} />
         <div className="comment-form__body">
-          <textarea
+          <MentionTextarea
             className="input"
             aria-label="Nouveau commentaire"
             placeholder="Ajouter un commentaire…"
             rows={3}
             maxLength={MAX_LENGTH.text}
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={setDraft}
             onKeyDown={submitOnModEnter}
             onPaste={pasteFiles}
           />
@@ -244,7 +245,9 @@ export function CommentThread({ ticketId }: { ticketId: number }) {
               {add.isPending ? "Envoi…" : "Commenter"}
             </button>
             <FilePicker onFiles={addFiles} />
-            <span className="field__hint">Ctrl + Entrée pour envoyer</span>
+            <span className="field__hint">
+              @ pour mentionner, # pour citer un ticket, Ctrl + Entrée pour envoyer
+            </span>
           </div>
         </div>
       </form>

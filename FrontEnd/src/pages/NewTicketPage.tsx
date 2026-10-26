@@ -7,6 +7,7 @@ import type { TicketPriority } from "../api/types";
 import { CategoryPicker, PriorityPicker } from "../components/tickets/Pickers";
 import { Field, FormError } from "../components/ui/Field";
 import { FilePicker } from "../components/ui/FilePicker";
+import { MentionTextarea } from "../components/ui/MentionTextarea";
 import { PageHeader } from "../components/ui/PageHeader";
 import { PendingFiles } from "../components/ui/PendingFiles";
 import { useCurrentProject, useProjectContext } from "../context/project";
@@ -112,14 +113,14 @@ export function NewTicketPage() {
         </Field>
 
         <Field label="Description" htmlFor="description" optional>
-          <textarea
+          <MentionTextarea
             id="description"
             className="input"
             rows={5}
             maxLength={MAX_LENGTH.text}
             placeholder="Ce qui se passe, depuis quand, ce que vous avez déjà essayé…"
             value={form.description}
-            onChange={(event) => change({ description: event.target.value })}
+            onChange={(description) => change({ description })}
           />
         </Field>
 

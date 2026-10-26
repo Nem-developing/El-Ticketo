@@ -36,6 +36,10 @@
   --status-closed-bg: #e5f4e5;
   --status-closed-fg: #006300;
 
+  // Mention de l'utilisateur connecté, surlignée comme un marqueur.
+  --highlight-bg: #fdf0c4;
+  --highlight-fg: #6b4700;
+
   --priority-low: #9aa3ad;
   --priority-normal: #2a78d6;
   --priority-high: #d03b3b;
@@ -84,6 +88,9 @@
   --status-waiting-fg: #f2c461;
   --status-closed-bg: rgba(12, 163, 12, 0.18);
   --status-closed-fg: #7fd07f;
+
+  --highlight-bg: rgba(237, 161, 0, 0.24);
+  --highlight-fg: #f7d27a;
 
   --priority-low: #6b737d;
   --priority-normal: #3987e5;
