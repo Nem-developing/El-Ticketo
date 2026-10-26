@@ -373,14 +373,9 @@ a.bars__row {
   }
 }
 
-// Dans un commentaire, la capture d'écran se lit sans l'ouvrir.
-.comment button.attachment__thumb {
-  width: 200px;
-  height: 140px;
-}
-
 .attachment {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
 }
@@ -406,13 +401,26 @@ a.bars__row {
   }
 }
 
+// Une image (description ou commentaire) se lit sans l'ouvrir : aperçu entier, à ses
+// proportions ; un clic l'agrandit.
 button.attachment__thumb {
+  width: auto;
+  height: auto;
+  max-width: min(480px, 100%);
   cursor: zoom-in;
+
+  img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: 320px;
+    object-fit: contain;
+  }
 }
 
 .attachment__info {
   display: flex;
-  flex: 1;
+  flex: 1 1 160px;
   flex-direction: column;
   min-width: 0;
   font-size: 13px;
