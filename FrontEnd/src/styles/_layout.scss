@@ -57,8 +57,15 @@ $mobile: 900px;
   width: 100%;
 }
 
-.sidebar__version {
+// Bascule entre tickets et administration, en bas de la barre.
+.sidebar__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-top: auto;
+}
+
+.sidebar__version {
   padding: 0 10px;
   font-size: 12px;
   opacity: 0.7;

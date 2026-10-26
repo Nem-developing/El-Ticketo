@@ -1,8 +1,9 @@
 import { LogOut, Menu, UserRound, X } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 
 import { useAuth, useCurrentUser } from "../../auth/context";
 import { useProjectContext } from "../../context/project";
+import { isAdminArea } from "./area";
 
 interface TopbarProps {
   menuOpen: boolean;
@@ -13,6 +14,7 @@ export function Topbar({ menuOpen, onToggleMenu }: TopbarProps) {
   const user = useCurrentUser();
   const { logout } = useAuth();
   const { projects, current, select } = useProjectContext();
+  const inAdmin = isAdminArea(useLocation().pathname);
 
   return (
     <header className="topbar">
@@ -26,7 +28,10 @@ export function Topbar({ menuOpen, onToggleMenu }: TopbarProps) {
         {menuOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
-      {projects.length > 1 ? (
+      {inAdmin ? (
+        // L'administration porte sur tous les projets à la fois.
+        <span className="topbar__project-name">Administration</span>
+      ) : projects.length > 1 ? (
         <select
           className="input topbar__project"
           aria-label="Projet"

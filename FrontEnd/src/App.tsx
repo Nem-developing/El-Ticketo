@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 
 import { ApiError } from "./api/client";
 import { AuthProvider } from "./auth/AuthProvider";
@@ -51,6 +51,7 @@ export function App() {
                     <Route path="tickets/:ticketId" element={<TicketPage />} />
                     <Route path="account" element={<AccountPage />} />
                     <Route path="admin" element={<RequireAdmin />}>
+                      <Route index element={<Navigate to="overview" replace />} />
                       <Route path="overview" element={<OverviewPage />} />
                       <Route path="users" element={<UsersPage />} />
                       <Route path="projects" element={<ProjectsPage />} />

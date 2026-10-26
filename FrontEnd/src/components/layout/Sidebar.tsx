@@ -1,10 +1,12 @@
 import {
+  ArrowLeft,
   FolderKanban,
   Gauge,
   LayoutDashboard,
   ListTodo,
   Plus,
   ScrollText,
+  Settings,
   Ticket,
   Users,
   Webhook,
@@ -14,6 +16,7 @@ import { Link, useLocation, type Location } from "react-router";
 
 import { useVersion } from "../../api/queries";
 import { useCurrentUser } from "../../auth/context";
+import { isAdminArea } from "./area";
 
 interface NavItem {
   to: string;
@@ -49,37 +52,19 @@ const MAIN_NAV: NavItem[] = [
   },
 ];
 
+const adminItem = (path: string, label: string, icon: LucideIcon): NavItem => ({
+  to: `/admin/${path}`,
+  label,
+  icon,
+  isActive: (location) => location.pathname.startsWith(`/admin/${path}`),
+});
+
 const ADMIN_NAV: NavItem[] = [
-  {
-    to: "/admin/overview",
-    label: "Vue d'ensemble",
-    icon: Gauge,
-    isActive: (location) => location.pathname.startsWith("/admin/overview"),
-  },
-  {
-    to: "/admin/users",
-    label: "Utilisateurs",
-    icon: Users,
-    isActive: (location) => location.pathname.startsWith("/admin/users"),
-  },
-  {
-    to: "/admin/projects",
-    label: "Projets",
-    icon: FolderKanban,
-    isActive: (location) => location.pathname.startsWith("/admin/projects"),
-  },
-  {
-    to: "/admin/webhooks",
-    label: "Webhooks",
-    icon: Webhook,
-    isActive: (location) => location.pathname.startsWith("/admin/webhooks"),
-  },
-  {
-    to: "/admin/logs",
-    label: "Journal",
-    icon: ScrollText,
-    isActive: (location) => location.pathname.startsWith("/admin/logs"),
-  },
+  adminItem("overview", "Vue d'ensemble", Gauge),
+  adminItem("users", "Utilisateurs", Users),
+  adminItem("projects", "Projets", FolderKanban),
+  adminItem("webhooks", "Webhooks", Webhook),
+  adminItem("logs", "Journal", ScrollText),
 ];
 
 function NavEntry({ item }: { item: NavItem }) {
@@ -97,38 +82,56 @@ function NavEntry({ item }: { item: NavItem }) {
   );
 }
 
+/** Soit le menu des tickets, soit celui de l'administration : on passe de l'un à l'autre en bas. */
 export function Sidebar() {
   const user = useCurrentUser();
   const version = useVersion();
+  const inAdmin = isAdminArea(useLocation().pathname);
 
   return (
     <aside className="sidebar" aria-label="Navigation principale">
-      <Link to="/" className="sidebar__brand">
+      <Link to={inAdmin ? "/admin" : "/"} className="sidebar__brand">
         <img src="/favicon.svg" alt="" width={28} height={28} />
         El Ticketo
       </Link>
 
-      <Link to="/tickets/new" className="button button--primary sidebar__cta">
-        <Plus size={18} aria-hidden="true" />
-        Nouveau ticket
-      </Link>
-
-      <nav className="nav">
-        {MAIN_NAV.map((item) => (
-          <NavEntry key={item.to} item={item} />
-        ))}
-      </nav>
-
-      {user.is_admin && (
+      {inAdmin ? (
         <nav className="nav" aria-label="Administration">
           <p className="nav__section">Administration</p>
           {ADMIN_NAV.map((item) => (
             <NavEntry key={item.to} item={item} />
           ))}
         </nav>
+      ) : (
+        <>
+          <Link to="/tickets/new" className="button button--primary sidebar__cta">
+            <Plus size={18} aria-hidden="true" />
+            Nouveau ticket
+          </Link>
+          <nav className="nav">
+            {MAIN_NAV.map((item) => (
+              <NavEntry key={item.to} item={item} />
+            ))}
+          </nav>
+        </>
       )}
 
-      {version.data && <p className="sidebar__version">Version {version.data}</p>}
+      <div className="sidebar__footer">
+        {inAdmin ? (
+          <Link to="/" className="nav__link">
+            <ArrowLeft size={18} aria-hidden="true" />
+            Retour aux tickets
+          </Link>
+        ) : (
+          user.is_admin && (
+            <Link to="/admin" className="nav__link">
+              <Settings size={18} aria-hidden="true" />
+              Administration
+            </Link>
+          )
+        )}
+        {version.data && <p className="sidebar__version">Version {version.data}</p>}
+      </div>
     </aside>
   );
 }
