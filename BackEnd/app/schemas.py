@@ -12,7 +12,13 @@ from pydantic import (
     field_validator,
 )
 
-from app.models import DEFAULT_CATEGORIES, LogLevel, TicketPriority, TicketStatus
+from app.models import (
+    DEFAULT_CATEGORIES,
+    LogLevel,
+    NotificationKind,
+    TicketPriority,
+    TicketStatus,
+)
 from app.security import attachment_url
 
 Username = Annotated[
@@ -244,6 +250,23 @@ class CommentCreate(BaseModel):
 
 class CommentWrite(BaseModel):
     body: CommentBody
+
+
+# --- Notifications ------------------------------------------------------------
+
+
+class TicketRef(ORMModel):
+    id: int
+    title: str
+
+
+class NotificationOut(ORMModel):
+    id: int
+    kind: NotificationKind = Field(description="`mention` (@identifiant) ou `assignment`.")
+    ticket: TicketRef
+    actor: UserSummary
+    is_read: bool
+    created_at: datetime
 
 
 # --- Statistiques -------------------------------------------------------------

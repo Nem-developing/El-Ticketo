@@ -1,11 +1,13 @@
 import { ArrowLeft, Pencil } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { ApiError, errorMessage } from "../api/client";
 import {
   useAttachmentMutations,
   useDeleteTicket,
+  useMarkNotificationsRead,
+  useNotifications,
   useTicket,
   useUpdateTicket,
   useUsers,
@@ -22,6 +24,7 @@ import { Linkify } from "../components/ui/Linkify";
 import { EmptyState, ErrorState, Loader } from "../components/ui/States";
 import { useProjectContext } from "../context/project";
 import { useToast } from "../context/toast";
+import { useDocumentTitle } from "../lib/documentTitle";
 import { dropFiles } from "../lib/files";
 import { formatDateTime, formatRelative } from "../lib/format";
 import { MAX_LENGTH, PRIORITIES, PRIORITY_LABELS, STATUSES, STATUS_LABELS } from "../lib/labels";
@@ -117,6 +120,17 @@ function TicketDetails({ ticket }: { ticket: Ticket }) {
   const { upload } = useAttachmentMutations(ticket.id);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  useDocumentTitle(`#${ticket.id} ${ticket.title}`);
+
+  // Ouvrir le ticket suffit à lire ses notifications (mention, assignation).
+  const notifications = useNotifications();
+  const { mutate: markNotificationsRead } = useMarkNotificationsRead();
+  const hasUnread = !!notifications.data?.some(
+    (item) => !item.is_read && item.ticket.id === ticket.id,
+  );
+  useEffect(() => {
+    if (hasUnread) markNotificationsRead(ticket.id);
+  }, [hasUnread, ticket.id, markNotificationsRead]);
 
   const save = (changes: TicketUpdate, onDone?: () => void) =>
     update.mutate(changes, {

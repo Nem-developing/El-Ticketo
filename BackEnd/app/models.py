@@ -1,8 +1,8 @@
 """Modèle de données.
 
 Volontairement minimal : des utilisateurs (admin ou membre), des projets, des tickets,
-leurs commentaires, pièces jointes et historique, plus le journal d'administration, les
-webhooks et la configuration du SSO.
+leurs commentaires, pièces jointes et historique, les notifications, plus le journal
+d'administration, les webhooks et la configuration du SSO.
 Toutes les dates sont stockées en UTC.
 """
 
@@ -57,6 +57,11 @@ class TicketPriority(enum.StrEnum):
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
+
+
+class NotificationKind(enum.StrEnum):
+    MENTION = "mention"
+    ASSIGNMENT = "assignment"
 
 
 class LogLevel(enum.StrEnum):
@@ -212,6 +217,23 @@ class Attachment(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     uploaded_by: Mapped[User] = relationship(lazy="joined")
+
+
+class Notification(Base):
+    """Mention (@identifiant) ou assignation signalée à quelqu'un, lue quand il ouvre le ticket."""
+
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("tickets.id", ondelete="CASCADE"), index=True)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    kind: Mapped[NotificationKind] = mapped_column(_str_enum(NotificationKind))
+    is_read: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+
+    ticket: Mapped[Ticket] = relationship(lazy="joined")
+    actor: Mapped[User] = relationship(foreign_keys=[actor_id], lazy="joined")
 
 
 # Jusqu'à 16 Mo sous MariaDB (un BLOB simple s'arrête à 64 Ko).

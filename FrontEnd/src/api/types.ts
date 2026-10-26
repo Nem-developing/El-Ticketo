@@ -73,6 +73,18 @@ export interface Attachment {
   url: string;
 }
 
+export type NotificationKind = "mention" | "assignment";
+
+/** Mention (@identifiant) ou assignation signalée à l'utilisateur connecté. */
+export interface TicketNotification {
+  id: number;
+  kind: NotificationKind;
+  ticket: Pick<Ticket, "id" | "title">;
+  actor: UserSummary;
+  is_read: boolean;
+  created_at: string;
+}
+
 export interface Workload {
   open: number;
   closed_recently: number;

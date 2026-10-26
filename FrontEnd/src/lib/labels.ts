@@ -1,4 +1,4 @@
-import type { TicketEvent, TicketPriority, TicketStatus } from "../api/types";
+import type { NotificationKind, TicketEvent, TicketPriority, TicketStatus } from "../api/types";
 
 export const STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "closed"];
 export const OPEN_STATUSES: TicketStatus[] = ["new", "in_progress", "waiting"];
@@ -16,6 +16,11 @@ export const PRIORITY_LABELS: Record<TicketPriority, string> = {
   low: "Basse",
   normal: "Normale",
   high: "Haute",
+};
+
+export const NOTIFICATION_LABELS: Record<NotificationKind, string> = {
+  mention: "vous a mentionné",
+  assignment: "vous a assigné",
 };
 
 /** Toujours proposée en plus des catégories du projet, pour en saisir une librement. */

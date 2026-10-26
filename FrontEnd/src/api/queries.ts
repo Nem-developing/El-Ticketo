@@ -23,6 +23,7 @@ import type {
   TicketCreate,
   TicketEvent,
   TicketFilters,
+  TicketNotification,
   TicketUpdate,
   User,
   UserCreate,
@@ -49,6 +50,7 @@ export const queryKeys = {
   comments: (ticketId: number) => ["comments", ticketId] as const,
   events: (ticketId: number) => ["events", ticketId] as const,
   attachments: (ticketId: number) => ["attachments", ticketId] as const,
+  notifications: ["notifications"] as const,
   overview: ["overview"] as const,
   logs: (q: string) => ["logs", q] as const,
   webhooks: ["webhooks"] as const,
@@ -120,6 +122,13 @@ export const useAttachments = (ticketId: number) =>
   useQuery({
     queryKey: queryKeys.attachments(ticketId),
     queryFn: () => api.get<Attachment[]>(`/tickets/${ticketId}/attachments`),
+    refetchInterval: AUTO_REFRESH_MS,
+  });
+
+export const useNotifications = () =>
+  useQuery({
+    queryKey: queryKeys.notifications,
+    queryFn: () => api.get<TicketNotification[]>("/notifications"),
     refetchInterval: AUTO_REFRESH_MS,
   });
 
@@ -257,6 +266,26 @@ export function useAttachmentMutations(ticketId: number) {
       onSuccess,
     }),
   };
+}
+
+// --- Notifications ----------------------------------------------------------------
+
+/** Marque comme lues les notifications d'un ticket, ou toutes sans identifiant. */
+export function useMarkNotificationsRead() {
+  const queryClient = useQueryClient();
+  const key = queryKeys.notifications;
+  return useMutation({
+    mutationFn: (ticketId?: number) =>
+      api.post<void>(`/notifications/read${ticketId ? `?ticket_id=${ticketId}` : ""}`),
+    // Le compteur baisse tout de suite, sans attendre la réponse.
+    onMutate: (ticketId) =>
+      queryClient.setQueryData<TicketNotification[]>(key, (items) =>
+        items?.map((item) =>
+          ticketId === undefined || item.ticket.id === ticketId ? { ...item, is_read: true } : item,
+        ),
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
+  });
 }
 
 // --- Administration -------------------------------------------------------------

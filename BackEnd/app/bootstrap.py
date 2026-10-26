@@ -10,6 +10,7 @@ from sqlalchemy import Connection, Engine, func, inspect, select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
+from app import notifications
 from app.config import Settings
 from app.journal import purge
 from app.models import Project, Ticket, User
@@ -33,6 +34,7 @@ def init_database(
     with session_factory() as db:
         _seed_first_run(db, settings)
         purge(db)
+        notifications.purge(db)
         db.commit()
 
 

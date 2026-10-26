@@ -1,14 +1,17 @@
 import type { ReactNode } from "react";
 
+import { useDocumentTitle } from "../../lib/documentTitle";
+
 export function PageHeader({
   title,
   subtitle,
   actions,
 }: {
-  title: ReactNode;
+  title: string;
   subtitle?: ReactNode;
   actions?: ReactNode;
 }) {
+  useDocumentTitle(title);
   return (
     <header className="page-header">
       <div>

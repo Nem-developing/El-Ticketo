@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router";
 import { useAuth, useCurrentUser } from "../../auth/context";
 import { useProjectContext } from "../../context/project";
 import { isAdminArea } from "./area";
+import { Notifications } from "./Notifications";
 
 interface TopbarProps {
   menuOpen: boolean;
@@ -49,6 +50,7 @@ export function Topbar({ menuOpen, onToggleMenu }: TopbarProps) {
       )}
 
       <div className="topbar__user">
+        <Notifications />
         <Link to="/account" className="topbar__account" title="Mon compte">
           <UserRound size={18} aria-hidden="true" />
           <span>{user.username}</span>

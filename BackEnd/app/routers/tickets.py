@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.deps import AdminUser, CurrentUser, DbSession, get_or_404
 from app.journal import record
 from app.models import Comment, Project, Ticket, TicketEvent, TicketStatus, User, utcnow
+from app.notifications import notify_assignment, notify_mentions
 from app.schemas import (
     CommentCreate,
     CommentOut,
@@ -96,6 +97,8 @@ def create_ticket(payload: TicketCreate, db: DbSession, user: CurrentUser, notif
     get_or_404(db, Project, payload.project_id, "Projet introuvable.")
     ticket = Ticket(**payload.model_dump(), created_by_id=user.id)
     db.add(ticket)
+    db.flush()
+    notify_mentions(db, ticket, user, ticket.description)
     db.commit()
     text = f"Ticket #{ticket.id} créé par {user.username} : {ticket.title}"
     _notify(notifier, "ticket.created", text, user, ticket)
@@ -143,6 +146,10 @@ def update_ticket(
             modified[field.removesuffix("_id")] = _event_value(db, field, value)
     for field, value in modified.items():
         db.add(TicketEvent(ticket_id=ticket.id, actor_id=user.id, field=field, value=value))
+    if "description" in modified:
+        notify_mentions(db, ticket, user, ticket.description, before["description"])
+    if "assignee" in modified:
+        notify_assignment(db, ticket, user)
 
     db.commit()
     if modified:
@@ -223,6 +230,7 @@ def add_comment(
     comment = Comment(ticket_id=ticket.id, author_id=user.id, body=payload.body)
     db.add(comment)
     ticket.updated_at = utcnow()
+    notify_mentions(db, ticket, user, comment.body)
     db.commit()
     text = f"{user.username} a commenté le ticket #{ticket.id} « {ticket.title} »"
     if comment.body:
@@ -241,6 +249,7 @@ def edit_comment(
         raise HTTPException(
             status.HTTP_403_FORBIDDEN, detail="Seul l'auteur peut modifier ce commentaire."
         )
+    notify_mentions(db, comment.ticket, user, payload.body, comment.body)
     comment.body = payload.body
     comment.updated_at = utcnow()
     db.commit()

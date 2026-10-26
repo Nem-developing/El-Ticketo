@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import type { Ticket } from "../api/types";
+import type { Ticket, TicketNotification } from "../api/types";
 import { ALICE, jsonResponse, mockFetch, renderPage } from "../test/utils";
 import { TicketPage } from "./TicketPage";
 
@@ -23,7 +23,7 @@ const TICKET: Ticket = {
 
 const posts: string[] = [];
 
-function mockTicketApi() {
+function mockTicketApi(notifications: TicketNotification[] = []) {
   posts.length = 0;
   const patches: unknown[] = [];
   const fetchMock = mockFetch(async (method, url) => {
@@ -51,6 +51,7 @@ function mockTicketApi() {
       ]);
     }
     if (url.pathname === "/api/users") return jsonResponse([ALICE]);
+    if (url.pathname === "/api/notifications") return jsonResponse(notifications);
     return jsonResponse({ detail: "Ticket introuvable." }, 404);
   });
   return patches;
@@ -107,6 +108,23 @@ describe("TicketPage", () => {
         "/api/tickets/7/attachments?comment_id=5&name=capture.png",
       ]),
     );
+  });
+
+  it("ouvrir le ticket marque ses notifications comme lues", async () => {
+    mockTicketApi([
+      {
+        id: 1,
+        kind: "mention",
+        ticket: { id: 7, title: TICKET.title },
+        actor: { id: 1, username: "admin" },
+        is_read: false,
+        created_at: "2026-10-20T09:00:00Z",
+      },
+    ]);
+    renderPage(<TicketPage />, { path: "/tickets/:ticketId", route: "/tickets/7" });
+
+    await waitFor(() => expect(posts).toEqual(["/api/notifications/read?ticket_id=7"]));
+    expect(document.title).toBe("#7 Imprimante bloquée · El Ticketo");
   });
 
   it.each(["/tickets/0", "/tickets/abc", "/tickets/999"])(
